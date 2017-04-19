@@ -1,6 +1,8 @@
 #ifndef MODBUS_CONSTS_HPP
 #define MODBUS_CONSTS_HPP
 
+#include <stdint.h>
+
 namespace modbus {
 namespace tcp {
 
