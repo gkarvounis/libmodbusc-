@@ -1,3 +1,9 @@
-language: c++
+language: cpp
+sudo: required
+dist: precise
+
+before_install:
+  - sudo apt-get update -qq
+
 script: cd test && make test
 
