@@ -7,7 +7,7 @@ namespace modbus {
 namespace tcp {
 
 static const uint8_t    MODBUS_PROTOCOL_ID = 0;
-static const uint16_t   MODBUS_MAX_NUM_BITS_IN_READ_REQUEST = 0x0FD0;
+static const uint16_t   MODBUS_MAX_NUM_BITS_IN_READ_REQUEST = 0x07D0;
 static const uint8_t    MODBUS_MAX_NUM_REGS_IN_READ_REQUEST = 125;
 static const uint16_t   MODBUS_MAX_NUM_BITS_IN_WRITE_REQUEST = 2000;
 static const uint8_t    MODBUS_MAX_NUM_REGS_IN_WRITE_REQUEST = 125;
