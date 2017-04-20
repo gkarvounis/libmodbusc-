@@ -1,6 +1,6 @@
 IFLAGS = \
     -I ../encoder \
-    -I ../server \
+    -I ../server_utils \
     -I ../
 
 .PHONY=test
