@@ -29,7 +29,7 @@ int main() {
   req.setNumValues(128);
 
   // send encoded message from the buffer over some socket object.
-  // req.message_size() returns the number that should be sent.
+  // req.message_size() returns the number of bytes that should be sent.
   socket.send(
     reinterpret_cast<uint8_t*>(&buf), 
     req.message_size());
