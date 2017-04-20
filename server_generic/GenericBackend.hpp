@@ -7,6 +7,12 @@ public:
 
     template <typename Callback>
     void  getCoils(uint16_t startAddr, uint16_t numCoils, Callback cb) {
+        std::size_t fromCoil = startAddr;
+        std::size_t toCoil = fromCoil + numCoils;
+
+        if (toCoil >= 0x00FFFF)
+            throw IllegalDataAddress("request for coils up to " + std::to_string(toCoil-1));
+
         for (std::size_t i = startAddr; i < startAddr + numCoils; ++i)
             cb(i - startAddr, m_coils[i]);
     }
