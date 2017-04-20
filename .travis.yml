@@ -3,7 +3,7 @@ sudo: false
 dist: trusty
 
 before_install:
-  - sudo apt-get update -qq
+  - apt-get update -qq
 
 script: cd test && make test
 
