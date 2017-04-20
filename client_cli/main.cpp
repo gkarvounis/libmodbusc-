@@ -65,6 +65,9 @@ void handle_get_coils(ModbusClient& client, const std::vector<std::string>& args
     } catch (const ModbusErrorRsp& ex) {
         std::cout << "Device responded with error: " + std::string(ex.what()) << std::endl;
         return;
+    } catch (const std::out_of_range& ex) {
+        std::cout << ex.what() << std::endl;
+        return;
     }
 
     std::cout << "unitId:" << (unsigned)buf.header.unitId << std::endl
