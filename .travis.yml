@@ -1,5 +1,7 @@
 language: cpp
-sudo: false
+sudo: true
 dist: trusty
+install:
+    - sudo apt-get install libboost-all-dev
 script: cd test && make test
 
