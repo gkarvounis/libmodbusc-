@@ -58,6 +58,11 @@ void ModbusClient::readCoils(uint16_t startAddr, uint16_t numCoils, modbus::tcp:
     uint16_t payload_size = ntohs(rsp.header.length) - 2;
     uint8_t *payload = reinterpret_cast<uint8_t*>(&rsp) + sizeof(rsp.header);
     boost::asio::read(m_socket, boost::asio::buffer(payload, payload_size));
+
+    if (rsp.header.functionCode & 0x80) {
+        const auto* err_buf = reinterpret_cast<modbus::tcp::encoder::ErrorResponse::Buffer*>(&rsp);
+        throw ModbusErrorRsp(static_cast<modbus::tcp::FunctionCode>(err_buf->errCode));
+    }
 }
 
 #endif

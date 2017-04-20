@@ -6,6 +6,8 @@
 
 #include <iostream>
 #include <stdexcept>
+#include <algorithm>
+
 
 struct Options {
     std::string server_ip;
@@ -57,7 +59,38 @@ void handle_get_coils(ModbusClient& client, const std::vector<std::string>& args
     po::notify(vm);
 
     modbus::tcp::encoder::ReadCoilsRsp::Buffer buf;
-    client.readCoils(cmd_options.startAddress, cmd_options.numCoils, buf);
+
+    try {
+        client.readCoils(cmd_options.startAddress, cmd_options.numCoils, buf);
+    } catch (const ModbusErrorRsp& ex) {
+        std::cout << "Device responded with error: " + std::string(ex.what()) << std::endl;
+        return;
+    }
+
+    std::cout << "unitId:" << (unsigned)buf.header.unitId << std::endl
+              << "transactionId: " << ntohs(buf.header.transactionId) << std::endl;
+
+    std::size_t numRows = cmd_options.numCoils / 8;
+    if (cmd_options.numCoils % 8 != 0)
+        numRows++;
+
+    uint16_t coil = 0;
+
+    for (std::size_t row = 0; row < numRows; ++row) {
+        uint16_t fromCoil = cmd_options.startAddress + row * 8;
+        uint16_t toCoil = std::min(fromCoil + 7, cmd_options.numCoils + cmd_options.startAddress - 1);
+
+        std::cout << "coils " << fromCoil << " to " << toCoil << ": ";
+
+        for (unsigned i = 0; i < toCoil-fromCoil+1; ++i) {
+            uint8_t c = buf.values[coil/8];
+            uint8_t m = 1 << (coil%8);
+            std::cout << (c & m ? 1 : 0) << ' ';
+            coil++;
+        }
+
+        std::cout << std::endl;
+    }
 }
 
 
