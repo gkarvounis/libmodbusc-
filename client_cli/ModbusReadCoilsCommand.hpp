@@ -9,6 +9,8 @@ class ReadCoilsCommand : public ModbusCommand {
 public:
     inline                      ReadCoilsCommand();
     void                        exec(ModbusClient& client, const std::vector<std::string>& args) override;
+    std::string                 getShortHelpText() override;
+    void                        printHelp() override;
 
 private:
     struct CmdOptions {
@@ -77,6 +79,16 @@ void ReadCoilsCommand::printResult(modbus::tcp::encoder::ReadCoilsRsp::Buffer& r
         std::cout << std::endl;
     }
 }
+
+
+std::string ReadCoilsCommand::getShortHelpText() {
+    return "Read a list of coils from modbus device";
+}
+
+
+void ReadCoilsCommand::printHelp() {
+}
+
 
 #endif
 

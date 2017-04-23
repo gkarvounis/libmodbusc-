@@ -2,10 +2,13 @@
 #define MODBUS_COMMANDS_HPP
 
 #include "ModbusCommand.hpp"
+#include "ModbusReadCoilsCommand.hpp"
+#include "ModbusHelpCommand.hpp"
+#include "ModbusExitCommand.hpp"
+
 #include <map>
 #include <memory>
-
-#include "ModbusReadCoilsCommand.hpp"
+#include <iomanip>
 
 
 struct NoSuchCommand : public std::runtime_error {
@@ -17,9 +20,12 @@ class ModbusCommands {
 public:
     inline                          ModbusCommands();
     inline void                     exec(ModbusClient& client, const std::string& line);
+
 private:
     using  CommandsMap = std::map<std::string, std::shared_ptr<ModbusCommand>>;
 
+    inline void                     show_commands_list();
+    inline void                     show_command_help(const std::string& cmd);
     static void                     parse_cmd_line(const std::string& line, std::string& cmd, std::vector<std::string>& args);
     CommandsMap                     m_commands;
 };
@@ -28,8 +34,14 @@ private:
 ModbusCommands::ModbusCommands() :
     m_commands()
 {
-    auto ptr = std::make_shared<ReadCoilsCommand>();
-    m_commands[ptr->getCommand()] = ptr;
+    auto ptr1 = std::make_shared<ReadCoilsCommand>();
+    m_commands[ptr1->getCommand()] = ptr1;
+
+    auto ptr2 = std::make_shared<ModbusHelpCommand>();
+    m_commands[ptr2->getCommand()] = ptr2;
+
+    auto ptr3 = std::make_shared<ModbusExitCommand>();
+    m_commands[ptr3->getCommand()] = ptr3;
 }
 
 
@@ -43,7 +55,30 @@ void ModbusCommands::exec(ModbusClient& client, const std::string& line) {
     if (cmdobj == m_commands.end())
         throw NoSuchCommand(cmd);
 
-    cmdobj->second->exec(client, args);
+    try {
+        cmdobj->second->exec(client, args);
+    } catch (const NoSuchCommand& ex) {
+        std::cout << "No such command" << std::endl;
+    } catch (const ModbusCliHelp& ex) {
+        std::string cmd(ex.what());
+
+        if (cmd.empty())
+           show_commands_list();
+        else
+            show_command_help(ex.what());
+    }
+}
+
+
+void ModbusCommands::show_commands_list() {
+    std::cout << "List of available commands:" << std::endl;
+
+    for (const auto& kv: m_commands)
+        std::cout << "    " << std::setw(10) << kv.second->getCommand() << " - " << kv.second->getShortHelpText() << std::endl;
+}
+
+
+void ModbusCommands::show_command_help(const std::string& cmd) {
 }
 
 

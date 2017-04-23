@@ -14,6 +14,8 @@ public:
     inline const std::string&   getCommand() const;
 
     virtual void                exec(ModbusClient& client, const std::vector<std::string>& args);
+    virtual std::string         getShortHelpText() = 0;
+    virtual void                printHelp() = 0;
 
 protected:
     boost::program_options::options_description m_description;

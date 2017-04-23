@@ -40,6 +40,11 @@ void read_options(int argc, char** argv) {
 
 int main(int argc, char** argv) {
     read_options(argc, argv);
+    std::cout << std::endl << std::endl
+              << "Welcome to modbus cli" << std::endl
+              << "  Type 'help' to see the list of available commands" << std::endl
+              << "  Type 'help <cmd>' to see the usage of each command" << std::endl
+              << std::endl;
 
     ModbusClient client(options.unitId);
     ModbusCommands commands;
@@ -63,8 +68,9 @@ int main(int argc, char** argv) {
         
         try {
             commands.exec(client, line);
-        } catch (const NoSuchCommand& ex) {
-            std::cout << "No such command" << std::endl;
-        }
+        } catch (const ModbusCliExit& ex) {
+            break;
+        } 
     }
 }
+
