@@ -1,7 +1,7 @@
 #define CATCH_CONFIG_MAIN
-#include "Catch.hpp"
 
 #include "ModbusEncoder.hpp"
+#include "Catch.hpp"
 
 template <typename T>
 std::vector<uint32_t> to_vector(const T& buf, std::size_t num_bytes) {

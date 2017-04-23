@@ -5,6 +5,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <sstream>
+#include <stdexcept>
 
 
 namespace modbus {

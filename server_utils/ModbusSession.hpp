@@ -4,7 +4,7 @@
 #include "ModbusEncoder.hpp"
 #include "ModbusRequestHandler.hpp"
 #include <boost/asio.hpp>
-
+#include <iostream>
 
 template <typename ModbusDeviceBackend>
 class ModbusSession : public std::enable_shared_from_this<ModbusSession<ModbusDeviceBackend>> {
