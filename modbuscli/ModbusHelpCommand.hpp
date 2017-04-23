@@ -15,7 +15,6 @@ public:
     inline                      ModbusHelpCommand();
     void                        exec(ModbusClient& client, const std::vector<std::string>& args) override;
     std::string                 getShortHelpText();
-    void                        printHelp() override;
 
 private:
     std::string                 m_cmd;
@@ -32,7 +31,8 @@ ModbusHelpCommand::ModbusHelpCommand() :
 }
 
 
-void ModbusHelpCommand::exec(ModbusClient& /*client*/, const std::vector<std::string>& args) {
+void ModbusHelpCommand::exec(ModbusClient& client, const std::vector<std::string>& args) {
+    ModbusCommand::exec(client, args);
     throw ModbusCliHelp(m_cmd);
 }
 
@@ -41,9 +41,6 @@ std::string ModbusHelpCommand::getShortHelpText() {
     return "Get list of available commands and help about each one";
 }
 
-
-void ModbusHelpCommand::printHelp() {
-}
 
 #endif
 

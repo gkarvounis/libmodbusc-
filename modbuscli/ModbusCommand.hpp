@@ -5,6 +5,7 @@
 
 #include <boost/program_options.hpp>
 #include <vector>
+#include <iostream>
 
 
 class ModbusCommand {
@@ -15,7 +16,7 @@ public:
 
     virtual void                exec(ModbusClient& client, const std::vector<std::string>& args);
     virtual std::string         getShortHelpText() = 0;
-    virtual void                printHelp() = 0;
+    void                        printHelp();
 
 protected:
     boost::program_options::options_description m_description;
@@ -54,6 +55,10 @@ void ModbusCommand::exec(ModbusClient& /*client*/, const std::vector<std::string
     parseArgs(args);
 }
 
+
+void ModbusCommand::printHelp() {
+    std::cout << m_description << std::endl;
+}
 
 #endif
 

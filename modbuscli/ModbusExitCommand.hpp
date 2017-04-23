@@ -16,7 +16,6 @@ public:
     inline void                 exec(ModbusClient& client, const std::vector<std::string>& args);
 
     std::string                 getShortHelpText() override;
-    void                        printHelp() override;
 };
 
 
@@ -25,18 +24,14 @@ ModbusExitCommand::ModbusExitCommand() :
 {}
 
 
-void ModbusExitCommand::exec(ModbusClient& /*client*/, const std::vector<std::string>& /*args*/) {
+void ModbusExitCommand::exec(ModbusClient& client, const std::vector<std::string>& args) {
+    ModbusCommand::exec(client, args);
     throw ModbusCliExit();
 }
 
 
 std::string ModbusExitCommand::getShortHelpText() {
     return "Exit from the program";
-}
-
-
-void ModbusExitCommand::printHelp() {
-    std::cout << "Would print detailed help about exit" << std::endl;
 }
 
 #endif

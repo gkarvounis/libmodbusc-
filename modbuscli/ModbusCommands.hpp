@@ -79,6 +79,12 @@ void ModbusCommands::show_commands_list() {
 
 
 void ModbusCommands::show_command_help(const std::string& cmd) {
+    auto cmdobj = m_commands.find(cmd);
+
+    if (cmdobj == m_commands.end())
+        std::cout << "No such command: " << cmd << std::endl;
+    else
+        cmdobj->second->printHelp();
 }
 
 
