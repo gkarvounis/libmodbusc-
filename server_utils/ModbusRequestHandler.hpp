@@ -123,7 +123,7 @@ std::size_t ModbusRequestHandler<ModbusDeviceBackend>::handleWriteCoil(const mod
     encoder::WriteCoilResponse rsp(*buf);
 
     try {
-        m_backend.writeCoil(address, value = 0xFF00 ? true : false);
+        m_backend.writeCoil(address, value == 0xFF00 ? true : false);
         rsp.setAddress(address);
         rsp.setValue(value);
         return rsp.message_size();
