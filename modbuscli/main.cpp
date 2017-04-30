@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
     std::cout << std::endl << std::endl
               << "Welcome to modbus cli" << std::endl
               << "  Type 'help' to see the list of available commands" << std::endl
-              << "  Type 'help <cmd>' to see the usage of each command" << std::endl
+              << "  Type 'help -c <cmd>' to see the usage of each command" << std::endl
               << std::endl;
 
     ModbusClient client(options.unitId);

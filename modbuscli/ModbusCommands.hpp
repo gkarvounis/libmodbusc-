@@ -52,10 +52,10 @@ void ModbusCommands::exec(ModbusClient& client, const std::string& line) {
 
     auto cmdobj = m_commands.find(cmd);
 
-    if (cmdobj == m_commands.end())
-        throw NoSuchCommand(cmd);
-
     try {
+        if (cmdobj == m_commands.end())
+            throw NoSuchCommand(cmd);
+
         cmdobj->second->exec(client, args);
     } catch (const NoSuchCommand& ex) {
         std::cout << "No such command" << std::endl;
