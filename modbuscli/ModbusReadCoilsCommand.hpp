@@ -53,8 +53,9 @@ void ReadCoilsCommand::exec(ModbusClient& client, const std::vector<std::string>
 
 
 void ReadCoilsCommand::printResult(modbus::tcp::encoder::ReadCoilsRsp::Buffer& rsp) {
-    std::cout << "unitId:" << (unsigned)rsp.header.unitId << std::endl
+    std::cout << "unitId:" << static_cast<unsigned>(rsp.header.unitId) << std::endl
               << "transactionId: " << ntohs(rsp.header.transactionId) << std::endl;
+
 
     std::size_t numRows = cmd_options.numCoils / 8;
     if (cmd_options.numCoils % 8 != 0)
@@ -68,7 +69,7 @@ void ReadCoilsCommand::printResult(modbus::tcp::encoder::ReadCoilsRsp::Buffer& r
 
         std::cout << "coils " << fromCoil << " to " << toCoil << ": ";
 
-        for (unsigned i = 0; i < toCoil-fromCoil+1; ++i) {
+        for (unsigned i = fromCoil; i <= toCoil; ++i) {
             uint8_t c = rsp.values[coil/8];
             uint8_t m = 1 << (coil%8);
             std::cout << (c & m ? 1 : 0) << ' ';
