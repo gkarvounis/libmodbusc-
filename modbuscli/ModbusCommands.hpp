@@ -11,11 +11,6 @@
 #include <iomanip>
 
 
-struct NoSuchCommand : public std::runtime_error {
-    NoSuchCommand(const std::string& msg) : std::runtime_error(msg) {}
-};
-
-
 class ModbusCommands {
 public:
     inline                          ModbusCommands();
@@ -53,19 +48,17 @@ void ModbusCommands::exec(ModbusClient& client, const std::string& line) {
     auto cmdobj = m_commands.find(cmd);
 
     try {
-        if (cmdobj == m_commands.end())
-            throw NoSuchCommand(cmd);
+        if (cmdobj == m_commands.end()) {
+            std::cout << "No such command" << std::endl;
+            return;
+        }
 
         cmdobj->second->exec(client, args);
-    } catch (const NoSuchCommand& ex) {
-        std::cout << "No such command" << std::endl;
-    } catch (const ModbusCliHelp& ex) {
+    } catch (const ModbusCliHelpForCommand& ex) {
         std::string cmd(ex.what());
-
-        if (cmd.empty())
-           show_commands_list();
-        else
-            show_command_help(ex.what());
+        show_command_help(cmd);
+    } catch (const ModbusCliHelpListCommands& ex) {
+        show_commands_list();
     }
 }
 

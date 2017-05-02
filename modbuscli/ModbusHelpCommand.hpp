@@ -5,8 +5,13 @@
 #include <stdexcept>
 
 
-struct ModbusCliHelp : std::runtime_error {
-                                ModbusCliHelp(const std::string& cmd) : std::runtime_error(cmd) {}
+struct ModbusCliHelpForCommand : std::runtime_error {
+                                ModbusCliHelpForCommand(const std::string& cmd) : std::runtime_error(cmd) {}
+};
+
+
+struct ModbusCliHelpListCommands : std::runtime_error {
+                                ModbusCliHelpListCommands() : std::runtime_error("") {}
 };
 
 
@@ -33,7 +38,11 @@ ModbusHelpCommand::ModbusHelpCommand() :
 
 void ModbusHelpCommand::exec(ModbusClient& client, const std::vector<std::string>& args) {
     ModbusCommand::exec(client, args);
-    throw ModbusCliHelp(m_cmd);
+
+    if (m_cmd == "")
+        throw ModbusCliHelpListCommands();
+    else
+        throw ModbusCliHelpForCommand(m_cmd);
 }
 
 
