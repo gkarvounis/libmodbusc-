@@ -10,6 +10,7 @@ public:
     inline                      ReadCoilsCommand();
     void                        exec(ModbusClient& client, const std::vector<std::string>& args) override;
     std::string                 getShortHelpText() override;
+    std::string                 getUsageText() override;
 
 private:
     struct CmdOptions {
@@ -27,9 +28,11 @@ ReadCoilsCommand::ReadCoilsCommand() :
 {
     namespace po = boost::program_options;
 
-    m_description.add_options()
+    m_visible_options.add_options()
         ("startAddr,s", po::value<uint16_t>(&cmd_options.startAddress)->required(), "address of first coil to retrieve")
         ("numCoils,n", po::value<uint16_t>(&cmd_options.numCoils)->required(), "number of coils to retrieve (up to 2000 coils)");
+
+    compose_options();
 }
 
 
@@ -83,6 +86,11 @@ void ReadCoilsCommand::printResult(modbus::tcp::encoder::ReadCoilsRsp::Buffer& r
 
 std::string ReadCoilsCommand::getShortHelpText() {
     return "Read a list of coils from modbus device";
+}
+
+
+std::string ReadCoilsCommand::getUsageText() {
+    return "getcoils [options]";
 }
 
 #endif

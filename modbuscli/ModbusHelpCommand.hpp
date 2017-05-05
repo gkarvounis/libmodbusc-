@@ -19,8 +19,8 @@ class ModbusHelpCommand : public ModbusCommand {
 public:
     inline                      ModbusHelpCommand();
     void                        exec(ModbusClient& client, const std::vector<std::string>& args) override;
-    std::string                 getShortHelpText();
-
+    std::string                 getShortHelpText() override;
+    std::string                 getUsageText() override;
 private:
     std::string                 m_cmd;
 };
@@ -31,8 +31,11 @@ ModbusHelpCommand::ModbusHelpCommand() :
 {
     namespace po = boost::program_options;
 
-    m_description.add_options()
-        ("cmd,c", po::value<std::string>(&m_cmd)->default_value(""), "show help for a command");
+    m_hidden_options.add_options()
+        ("cmd", po::value<std::string>(&m_cmd)->default_value(""), "show help for a command");
+
+    m_positional_options.add("cmd", 1);
+    compose_options();
 }
 
 
@@ -50,6 +53,10 @@ std::string ModbusHelpCommand::getShortHelpText() {
     return "Get list of available commands and help about each one";
 }
 
+
+std::string ModbusHelpCommand::getUsageText() {
+    return "help <cmd>";
+}
 
 #endif
 

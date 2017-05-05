@@ -68,6 +68,8 @@ void ModbusCommands::show_commands_list() {
 
     for (const auto& kv: m_commands)
         std::cout << "    " << std::setw(10) << kv.second->getCommand() << " - " << kv.second->getShortHelpText() << std::endl;
+
+    std::cout << "Type 'help <cmd>' to see details for each command." << std::endl;
 }
 
 
@@ -85,9 +87,17 @@ void ModbusCommands::parse_cmd_line(const std::string& line, std::string& cmd, s
     namespace po = boost::program_options;
 
     auto pos = line.find(" ");
+
+    if (pos == std::string::npos) {
+        cmd = line;
+        args.clear();
+        return;
+    }
+        
     cmd = line.substr(0, pos);
     std::string remainder(line.begin()+pos+1, line.end());
     args = po::split_unix(remainder);
 }
+
 #endif
 
