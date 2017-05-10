@@ -1,6 +1,6 @@
 #include <iostream>
-#include "ModbusDevice.hpp"
-#include "GenericBackend.hpp"
+#include "ModbusServer.hpp"
+#include "ModbusGenericDevice.hpp"
 #include <thread>
 
 /*
@@ -50,8 +50,9 @@ void wait_signal() {
 
 int main() {
     boost::asio::io_service io;
-    ModbusGenericBackend backend;
-    ModbusDevice<ModbusGenericBackend> dev(io, backend);
+    ModbusGenericDevice device;
+    ModbusServer<ModbusGenericDevice> dev(io, device);
+
     dev.start("127.0.0.1", 8502, []() {
         std::cout << "done" << std::endl;
     });

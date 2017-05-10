@@ -1,9 +1,9 @@
 #ifndef GENERIC_BACKEND_HPP
 #define GENERIC_BACKEND_HPP
 
-class ModbusGenericBackend {
+class ModbusGenericDevice {
 public:
-    inline ModbusGenericBackend();
+    inline ModbusGenericDevice();
 
     template <typename Callback>
     void  getCoils(uint16_t startAddr, uint16_t numCoils, Callback cb) {
@@ -48,7 +48,7 @@ private:
 };
 
 
-ModbusGenericBackend::ModbusGenericBackend() :
+ModbusGenericDevice::ModbusGenericDevice() :
     m_coils(0xFFFF),
     m_discreteInputs(0xFFFF),
     m_holdingRegs(0xFFFF),

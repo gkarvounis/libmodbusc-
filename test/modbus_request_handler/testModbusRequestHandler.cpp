@@ -1,6 +1,6 @@
 #define CATCH_CONFIG_MAIN
 
-#include "ModbusDevice.hpp"
+#include "ModbusRequestHandler.hpp"
 #include "Catch.hpp"
 #include <iostream>
 #include <functional>

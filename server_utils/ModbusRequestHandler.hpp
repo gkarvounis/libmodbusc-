@@ -1,6 +1,10 @@
 #ifndef MODBUS_REQUEST_HANDLER_HPP
 #define MODBUS_REQUEST_HANDLER_HPP
 
+#include "ModbusConsts.hpp"
+#include "ModbusEncoder.hpp"
+#include <stdexcept>
+
 struct IllegalFunction : public std::runtime_error {
     IllegalFunction(modbus::tcp::FunctionCode funcCode) : std::runtime_error("Function code not supported " + std::to_string(funcCode)) {}
 };
@@ -14,10 +18,10 @@ struct SlaveDeviceFailure : public std::runtime_error {
 };
 
 
-template <typename ModbusDeviceBackend>
+template <typename ModbusDevice>
 class ModbusRequestHandler {
 public:
-                                    ModbusRequestHandler(ModbusDeviceBackend& backend, uint8_t* tx_buffer, std::size_t capacity);
+                                    ModbusRequestHandler(ModbusDevice& backend, uint8_t* tx_buffer, std::size_t capacity);
     std::size_t                     handleReadCoils(const modbus::tcp::serialized::ReadValuesReq& req);
     std::size_t                     handleReadDiscreteInputs(const modbus::tcp::serialized::ReadValuesReq& req);
     std::size_t                     handleReadHoldingRegisters(const modbus::tcp::serialized::ReadValuesReq& req);
@@ -28,7 +32,7 @@ public:
     std::size_t                     handleWriteRegisters(const modbus::tcp::serialized::SetRegsRequest& req);
 
 private:
-    ModbusDeviceBackend            &m_backend;
+    ModbusDevice                   &m_backend;
     uint8_t                        *m_tx_buffer;
     std::size_t                     m_tx_buffer_capacity;
 
@@ -40,17 +44,17 @@ private:
 };
 
 
-template <typename ModbusDeviceBackend>
-ModbusRequestHandler<ModbusDeviceBackend>::ModbusRequestHandler(ModbusDeviceBackend& backend, uint8_t* tx_buffer, std::size_t capacity) :
+template <typename ModbusDevice>
+ModbusRequestHandler<ModbusDevice>::ModbusRequestHandler(ModbusDevice& backend, uint8_t* tx_buffer, std::size_t capacity) :
     m_backend(backend),
     m_tx_buffer(tx_buffer),
     m_tx_buffer_capacity(capacity)
 {
 }
 
-template <typename ModbusDeviceBackend>
+template <typename ModbusDevice>
 template <typename Request>
-std::size_t ModbusRequestHandler<ModbusDeviceBackend>::createFailureMessage(const Request& req, modbus::tcp::FunctionCode funcCode, modbus::tcp::ExceptionCode ex) {
+std::size_t ModbusRequestHandler<ModbusDevice>::createFailureMessage(const Request& req, modbus::tcp::FunctionCode funcCode, modbus::tcp::ExceptionCode ex) {
     auto buf = new (m_tx_buffer)modbus::tcp::encoder::ErrorResponse::Buffer();
     modbus::tcp::encoder::ErrorResponse rsp(*buf, funcCode);
 
@@ -62,8 +66,8 @@ std::size_t ModbusRequestHandler<ModbusDeviceBackend>::createFailureMessage(cons
 }
 
 
-template <typename ModbusDeviceBackend>
-std::size_t ModbusRequestHandler<ModbusDeviceBackend>::handleReadCoils(const modbus::tcp::serialized::ReadValuesReq& req)
+template <typename ModbusDevice>
+std::size_t ModbusRequestHandler<ModbusDevice>::handleReadCoils(const modbus::tcp::serialized::ReadValuesReq& req)
 {
     using namespace modbus::tcp;
 
@@ -75,8 +79,8 @@ std::size_t ModbusRequestHandler<ModbusDeviceBackend>::handleReadCoils(const mod
 }
 
 
-template <typename ModbusDeviceBackend>
-std::size_t ModbusRequestHandler<ModbusDeviceBackend>::handleReadDiscreteInputs(const modbus::tcp::serialized::ReadValuesReq& req) {
+template <typename ModbusDevice>
+std::size_t ModbusRequestHandler<ModbusDevice>::handleReadDiscreteInputs(const modbus::tcp::serialized::ReadValuesReq& req) {
     using namespace modbus::tcp;
     return handle_read_values_req<encoder::ReadDiscreteInputsRsp, MODBUS_MAX_NUM_BITS_IN_READ_REQUEST, READ_DISCRETE_INPUTS>(req, [this](encoder::ReadDiscreteInputsRsp& rsp, uint16_t startAddr, uint16_t numValues) {
         m_backend.getDiscreteInputs(startAddr, numValues, [&rsp](uint16_t pos, bool value) {
@@ -86,8 +90,8 @@ std::size_t ModbusRequestHandler<ModbusDeviceBackend>::handleReadDiscreteInputs(
 }
 
 
-template <typename ModbusDeviceBackend>
-std::size_t ModbusRequestHandler<ModbusDeviceBackend>::handleReadHoldingRegisters(const modbus::tcp::serialized::ReadValuesReq& req) {
+template <typename ModbusDevice>
+std::size_t ModbusRequestHandler<ModbusDevice>::handleReadHoldingRegisters(const modbus::tcp::serialized::ReadValuesReq& req) {
     using namespace modbus::tcp;
     return handle_read_values_req<encoder::ReadHoldingRegsRsp, MODBUS_MAX_NUM_REGS_IN_READ_REQUEST, READ_HOLDING_REGISTERS>(req, [this](encoder::ReadHoldingRegsRsp& rsp, uint16_t startAddr, uint16_t numValues) {
         m_backend.getHoldingRegs(startAddr, numValues, [&rsp](uint16_t pos, uint16_t value) {
@@ -97,8 +101,8 @@ std::size_t ModbusRequestHandler<ModbusDeviceBackend>::handleReadHoldingRegister
 }
 
 
-template <typename ModbusDeviceBackend>
-std::size_t ModbusRequestHandler<ModbusDeviceBackend>::handleReadInputRegisters(const modbus::tcp::serialized::ReadValuesReq& req) {
+template <typename ModbusDevice>
+std::size_t ModbusRequestHandler<ModbusDevice>::handleReadInputRegisters(const modbus::tcp::serialized::ReadValuesReq& req) {
     using namespace modbus::tcp;
     return handle_read_values_req<encoder::ReadInputRegsRsp, MODBUS_MAX_NUM_REGS_IN_READ_REQUEST, READ_INPUT_REGISTERS>(req, [this](encoder::ReadInputRegsRsp& rsp, uint16_t startAddr, uint16_t numValues) {
         m_backend.getInputRegs(startAddr, numValues, [&rsp](uint16_t pos, uint16_t value) {
@@ -108,8 +112,8 @@ std::size_t ModbusRequestHandler<ModbusDeviceBackend>::handleReadInputRegisters(
 }
 
 
-template <typename ModbusDeviceBackend>
-std::size_t ModbusRequestHandler<ModbusDeviceBackend>::handleWriteCoil(const modbus::tcp::serialized::WriteValueReq& req) {
+template <typename ModbusDevice>
+std::size_t ModbusRequestHandler<ModbusDevice>::handleWriteCoil(const modbus::tcp::serialized::WriteValueReq& req) {
     using namespace modbus::tcp;
 
     uint16_t address = htons(req.address);
@@ -137,8 +141,8 @@ std::size_t ModbusRequestHandler<ModbusDeviceBackend>::handleWriteCoil(const mod
 }
 
 
-template <typename ModbusDeviceBackend>
-std::size_t ModbusRequestHandler<ModbusDeviceBackend>::handleWriteRegister(const modbus::tcp::serialized::WriteValueReq& req) {
+template <typename ModbusDevice>
+std::size_t ModbusRequestHandler<ModbusDevice>::handleWriteRegister(const modbus::tcp::serialized::WriteValueReq& req) {
     using namespace modbus::tcp;
 
     uint16_t address = htons(req.address);
@@ -162,21 +166,21 @@ std::size_t ModbusRequestHandler<ModbusDeviceBackend>::handleWriteRegister(const
 }
 
 
-template <typename ModbusDeviceBackend>
-std::size_t ModbusRequestHandler<ModbusDeviceBackend>::handleWriteCoils(const modbus::tcp::serialized::SetBitsRequest& req) {
+template <typename ModbusDevice>
+std::size_t ModbusRequestHandler<ModbusDevice>::handleWriteCoils(const modbus::tcp::serialized::SetBitsRequest& req) {
     return 0;
 }
 
 
-template <typename ModbusDeviceBackend>
-std::size_t ModbusRequestHandler<ModbusDeviceBackend>::handleWriteRegisters(const modbus::tcp::serialized::SetRegsRequest& req) {
+template <typename ModbusDevice>
+std::size_t ModbusRequestHandler<ModbusDevice>::handleWriteRegisters(const modbus::tcp::serialized::SetRegsRequest& req) {
     return 0;
 }
 
 
-template <typename ModbusDeviceBackend>
+template <typename ModbusDevice>
 template <typename RspType, std::uint16_t MaxNumValues, modbus::tcp::FunctionCode funcCode, typename Callback>
-std::size_t ModbusRequestHandler<ModbusDeviceBackend>::handle_read_values_req(const modbus::tcp::serialized::ReadValuesReq& req, Callback cb) {
+std::size_t ModbusRequestHandler<ModbusDevice>::handle_read_values_req(const modbus::tcp::serialized::ReadValuesReq& req, Callback cb) {
     using namespace modbus::tcp;
 
     uint16_t startAddr = htons(req.startAddr);

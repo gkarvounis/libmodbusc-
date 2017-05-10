@@ -6,20 +6,20 @@
 #include <stdexcept>
 
 
-template <typename ModbusDeviceBackend>
-class ModbusDevice {
+template <typename ModbusDevice>
+class ModbusServer {
 public:
-                                    ModbusDevice(boost::asio::io_service& io, ModbusDeviceBackend& backend);
+                                    ModbusServer(boost::asio::io_service& io, ModbusDevice& backend);
 
     template <typename Callback>
     void                            start(const std::string& ip, uint16_t port, Callback done_cb);
     void                            stop();
 
 private:
-    using PModbusSession = std::shared_ptr<ModbusSession<ModbusDeviceBackend>>;
+    using PModbusSession = std::shared_ptr<ModbusSession<ModbusDevice>>;
 
 
-    ModbusDeviceBackend            &m_backend;
+    ModbusDevice            &m_backend;
     boost::asio::ip::tcp::acceptor  m_acceptor;
     std::set<PModbusSession>        m_sessions;
     std::function<void(void)>       m_done_cb;
@@ -36,26 +36,26 @@ private:
 };
 
 
-template <typename ModbusDeviceBackend>
-ModbusDevice<ModbusDeviceBackend>::ModbusDevice(boost::asio::io_service& io, ModbusDeviceBackend& backend) :
+template <typename ModbusDevice>
+ModbusServer<ModbusDevice>::ModbusServer(boost::asio::io_service& io, ModbusDevice& backend) :
     m_backend(backend),
     m_acceptor(io),
     m_sessions()
 {}
 
 
-template <typename ModbusDeviceBackend>
+template <typename ModbusDevice>
 template <typename Callback>
-void ModbusDevice<ModbusDeviceBackend>::start(const std::string& ip, uint16_t port, Callback cb) {
+void ModbusServer<ModbusDevice>::start(const std::string& ip, uint16_t port, Callback cb) {
     m_acceptor.get_io_service().post([this, ip, port, cb]() {
         on_start(ip, port, cb);
     });
 }
 
 
-template <typename ModbusDeviceBackend>
+template <typename ModbusDevice>
 template <typename Callback>
-void ModbusDevice<ModbusDeviceBackend>::on_start(const std::string& ip, uint16_t port, Callback cb) {
+void ModbusServer<ModbusDevice>::on_start(const std::string& ip, uint16_t port, Callback cb) {
     boost::asio::ip::tcp::endpoint ep(boost::asio::ip::address::from_string(ip), port);
     m_acceptor.open(ep.protocol());
     m_acceptor.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
@@ -67,9 +67,9 @@ void ModbusDevice<ModbusDeviceBackend>::on_start(const std::string& ip, uint16_t
 }
 
 
-template <typename ModbusDeviceBackend>
-void ModbusDevice<ModbusDeviceBackend>::init_accepting() {
-    PModbusSession session = std::make_shared<ModbusSession<ModbusDeviceBackend>>(m_acceptor.get_io_service(), m_backend);
+template <typename ModbusDevice>
+void ModbusServer<ModbusDevice>::init_accepting() {
+    PModbusSession session = std::make_shared<ModbusSession<ModbusDevice>>(m_acceptor.get_io_service(), m_backend);
 
     m_acceptor.async_accept(
         session->socket(),
@@ -79,8 +79,8 @@ void ModbusDevice<ModbusDeviceBackend>::init_accepting() {
 }
 
 
-template <typename ModbusDeviceBackend>
-void ModbusDevice<ModbusDeviceBackend>::on_client_connected(PModbusSession session, const boost::system::error_code& ec) {
+template <typename ModbusDevice>
+void ModbusServer<ModbusDevice>::on_client_connected(PModbusSession session, const boost::system::error_code& ec) {
     if (ec == boost::asio::error::operation_aborted) {
         if (m_sessions.empty())
             trigger_done_cb();
@@ -98,8 +98,8 @@ void ModbusDevice<ModbusDeviceBackend>::on_client_connected(PModbusSession sessi
 }
 
 
-template <typename ModbusDeviceBackend>
-void ModbusDevice<ModbusDeviceBackend>::on_session_done(PModbusSession session) {
+template <typename ModbusDevice>
+void ModbusServer<ModbusDevice>::on_session_done(PModbusSession session) {
     m_sessions.erase(session);
     std::cout << "session done " << session.get() << std::endl;
 
@@ -108,22 +108,22 @@ void ModbusDevice<ModbusDeviceBackend>::on_session_done(PModbusSession session) 
 }
 
 
-template <typename ModbusDeviceBackend>
-void ModbusDevice<ModbusDeviceBackend>::stop() {
+template <typename ModbusDevice>
+void ModbusServer<ModbusDevice>::stop() {
     m_acceptor.get_io_service().post([this]() {
         on_stop();
     });
 }
 
 
-template <typename ModbusDeviceBackend>
-void ModbusDevice<ModbusDeviceBackend>::on_stop() {
+template <typename ModbusDevice>
+void ModbusServer<ModbusDevice>::on_stop() {
     m_acceptor.close();
 }
 
 
-template <typename ModbusDeviceBackend>
-void ModbusDevice<ModbusDeviceBackend>::trigger_done_cb() {
+template <typename ModbusDevice>
+void ModbusServer<ModbusDevice>::trigger_done_cb() {
     m_acceptor.get_io_service().post([this]() {
         m_done_cb();
         m_done_cb = nullptr;
@@ -131,8 +131,8 @@ void ModbusDevice<ModbusDeviceBackend>::trigger_done_cb() {
 }
 
 
-template <typename ModbusDeviceBackend>
-void ModbusDevice<ModbusDeviceBackend>::init_shutdown_sessions() {
+template <typename ModbusDevice>
+void ModbusServer<ModbusDevice>::init_shutdown_sessions() {
     for (auto &s: m_sessions) {
         s->stop();
     }

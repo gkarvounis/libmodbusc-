@@ -1,15 +1,14 @@
 #ifndef MODBUS_SESSION_HPP
 #define MODBUS_SESSION_HPP
 
-#include "ModbusEncoder.hpp"
 #include "ModbusRequestHandler.hpp"
 #include <boost/asio.hpp>
 #include <iostream>
 
-template <typename ModbusDeviceBackend>
-class ModbusSession : public std::enable_shared_from_this<ModbusSession<ModbusDeviceBackend>> {
+template <typename ModbusDevice>
+class ModbusSession : public std::enable_shared_from_this<ModbusSession<ModbusDevice>> {
 public:
-    inline                          ModbusSession(boost::asio::io_service& io, ModbusDeviceBackend& backend);
+    inline                          ModbusSession(boost::asio::io_service& io, ModbusDevice& backend);
     inline                          ~ModbusSession();
 
     boost::asio::ip::tcp::socket&   socket();
@@ -20,8 +19,7 @@ public:
     inline void                     stop();
 
 private:
-    ModbusDeviceBackend            &m_backend;
-    ModbusRequestHandler<ModbusDeviceBackend> m_modbus_handler;
+    ModbusRequestHandler<ModbusDevice> m_modbus_handler;
     boost::asio::ip::tcp::socket    m_socket;
     uint8_t                         m_rx_buffer[1024];
     uint8_t                         m_tx_buffer[1024];
@@ -37,9 +35,8 @@ private:
 };
 
 
-template <typename ModbusDeviceBackend>
-ModbusSession<ModbusDeviceBackend>::ModbusSession(boost::asio::io_service& io, ModbusDeviceBackend& backend) :
-    m_backend(backend),
+template <typename ModbusDevice>
+ModbusSession<ModbusDevice>::ModbusSession(boost::asio::io_service& io, ModbusDevice& backend) :
     m_modbus_handler(backend, m_tx_buffer, sizeof(m_tx_buffer)),
     m_socket(io)
 {
@@ -47,28 +44,28 @@ ModbusSession<ModbusDeviceBackend>::ModbusSession(boost::asio::io_service& io, M
 }
 
 
-template <typename ModbusDeviceBackend>
-ModbusSession<ModbusDeviceBackend>::~ModbusSession() {
+template <typename ModbusDevice>
+ModbusSession<ModbusDevice>::~ModbusSession() {
     std::cout << "end session " << this << std::endl;
 }
 
 
-template <typename ModbusDeviceBackend>
-boost::asio::ip::tcp::socket& ModbusSession<ModbusDeviceBackend>::socket() {
+template <typename ModbusDevice>
+boost::asio::ip::tcp::socket& ModbusSession<ModbusDevice>::socket() {
     return m_socket;
 }
 
 
-template <typename ModbusDeviceBackend>
+template <typename ModbusDevice>
 template <typename Callback>
-void ModbusSession<ModbusDeviceBackend>::start(Callback done_cb) {
+void ModbusSession<ModbusDevice>::start(Callback done_cb) {
     m_done_cb = done_cb;
     init_header_reception();
 }
 
 
-template <typename ModbusDeviceBackend>
-void ModbusSession<ModbusDeviceBackend>::init_header_reception() {
+template <typename ModbusDevice>
+void ModbusSession<ModbusDevice>::init_header_reception() {
     auto self = this->shared_from_this();
 
     boost::asio::async_read(
@@ -80,8 +77,8 @@ void ModbusSession<ModbusDeviceBackend>::init_header_reception() {
 }
 
 
-template <typename ModbusDeviceBackend>
-void ModbusSession<ModbusDeviceBackend>::on_header_received(const boost::system::error_code& ec) {
+template <typename ModbusDevice>
+void ModbusSession<ModbusDevice>::on_header_received(const boost::system::error_code& ec) {
     if (ec) {
         m_done_cb();
         m_done_cb = nullptr;
@@ -92,8 +89,8 @@ void ModbusSession<ModbusDeviceBackend>::on_header_received(const boost::system:
 }
 
 
-template <typename ModbusDeviceBackend>
-void ModbusSession<ModbusDeviceBackend>::init_payload_reception() {
+template <typename ModbusDevice>
+void ModbusSession<ModbusDevice>::init_payload_reception() {
     auto* h = reinterpret_cast<modbus::tcp::serialized::Header*>(m_rx_buffer);
     std::size_t payload_size = ntohs(h->length) - 2;
 
@@ -106,8 +103,8 @@ void ModbusSession<ModbusDeviceBackend>::init_payload_reception() {
 }
 
 
-template <typename ModbusDeviceBackend>
-void ModbusSession<ModbusDeviceBackend>::on_payload_received(const boost::system::error_code& ec) {
+template <typename ModbusDevice>
+void ModbusSession<ModbusDevice>::on_payload_received(const boost::system::error_code& ec) {
     if (ec) {
         m_done_cb();
         m_done_cb = nullptr;
@@ -118,8 +115,8 @@ void ModbusSession<ModbusDeviceBackend>::on_payload_received(const boost::system
 }
 
 
-template <typename ModbusDeviceBackend>
-void ModbusSession<ModbusDeviceBackend>::handle_message() {
+template <typename ModbusDevice>
+void ModbusSession<ModbusDevice>::handle_message() {
     using namespace modbus::tcp::serialized;
 
     const auto *h = reinterpret_cast<const Header*>(m_rx_buffer);
@@ -203,8 +200,8 @@ void ModbusSession<ModbusServiceBackend>::on_response_sent(const boost::system::
 }
 
 
-template <typename ModbusDeviceBackend>
-void ModbusSession<ModbusDeviceBackend>::stop() {
+template <typename ModbusDevice>
+void ModbusSession<ModbusDevice>::stop() {
     auto self = this->shared_from_this();
 
     m_socket.get_io_service().post([self, this]() {
