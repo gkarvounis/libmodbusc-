@@ -1,5 +1,5 @@
 TEST_CASE("Handling read coils request", "[]") {
-    class MyBackend {
+    class MyDevice {
     public:
         void getCoils(uint16_t startAddr, uint16_t numCoils, std::function<void(uint16_t pos, bool value)> cb) {
             REQUIRE(startAddr == 0x0405);
@@ -17,9 +17,9 @@ TEST_CASE("Handling read coils request", "[]") {
         }
     };
 
-    MyBackend backend;
+    MyDevice device;
     uint8_t tx_buffer[1024];
-    ModbusRequestHandler<MyBackend> handler(backend, tx_buffer, sizeof(tx_buffer));
+    ModbusRequestHandler<MyDevice> handler(device, tx_buffer, sizeof(tx_buffer));
 
     modbus::tcp::encoder::ReadCoilsReq::Buffer buf;
     modbus::tcp::encoder::ReadCoilsReq req(buf);
@@ -41,7 +41,7 @@ TEST_CASE("Handling read coils request", "[]") {
 
 
 TEST_CASE("Handling read coils request - Illegal function", "[]") {
-    class MyBackend {
+    class MyDevice {
     public:
         void getCoils(uint16_t startAddr, uint16_t numCoils, std::function<void(uint16_t pos, bool value)> /*cb*/) {
             REQUIRE(startAddr == 0x0405);
@@ -50,9 +50,9 @@ TEST_CASE("Handling read coils request - Illegal function", "[]") {
         }
     };
 
-    MyBackend backend;
+    MyDevice device;
     uint8_t tx_buffer[1024];
-    ModbusRequestHandler<MyBackend> handler(backend, tx_buffer, sizeof(tx_buffer));
+    ModbusRequestHandler<MyDevice> handler(device, tx_buffer, sizeof(tx_buffer));
 
     modbus::tcp::encoder::ReadCoilsReq::Buffer buf;
     modbus::tcp::encoder::ReadCoilsReq req(buf);
@@ -72,7 +72,7 @@ TEST_CASE("Handling read coils request - Illegal function", "[]") {
 
 
 TEST_CASE("Handling read coils request - Device error", "[]") {
-    class MyBackend {
+    class MyDevice {
     public:
         void getCoils(uint16_t startAddr, uint16_t numCoils, std::function<void(uint16_t pos, bool value)> /*cb*/) {
             REQUIRE(startAddr == 0x0405);
@@ -81,9 +81,9 @@ TEST_CASE("Handling read coils request - Device error", "[]") {
         }
     };
 
-    MyBackend backend;
+    MyDevice device;
     uint8_t tx_buffer[1024];
-    ModbusRequestHandler<MyBackend> handler(backend, tx_buffer, sizeof(tx_buffer));
+    ModbusRequestHandler<MyDevice> handler(device, tx_buffer, sizeof(tx_buffer));
 
     modbus::tcp::encoder::ReadCoilsReq::Buffer buf;
     modbus::tcp::encoder::ReadCoilsReq req(buf);
@@ -103,7 +103,7 @@ TEST_CASE("Handling read coils request - Device error", "[]") {
 
 
 TEST_CASE("Handling read coils request - Illegal data address", "[]") {
-    class MyBackend {
+    class MyDevice {
     public:
         void getCoils(uint16_t startAddr, uint16_t numCoils, std::function<void(uint16_t pos, bool value)> /*cb*/) {
             REQUIRE(startAddr == 0x0405);
@@ -112,9 +112,9 @@ TEST_CASE("Handling read coils request - Illegal data address", "[]") {
         }
     };
 
-    MyBackend backend;
+    MyDevice device;
     uint8_t tx_buffer[1024];
-    ModbusRequestHandler<MyBackend> handler(backend, tx_buffer, sizeof(tx_buffer));
+    ModbusRequestHandler<MyDevice> handler(device, tx_buffer, sizeof(tx_buffer));
 
     modbus::tcp::encoder::ReadCoilsReq::Buffer buf;
     modbus::tcp::encoder::ReadCoilsReq req(buf);
