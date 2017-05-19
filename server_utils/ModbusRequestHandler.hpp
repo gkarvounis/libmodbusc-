@@ -21,7 +21,7 @@ struct SlaveDeviceFailure : public std::runtime_error {
 template <typename ModbusDevice>
 class ModbusRequestHandler {
 public:
-                                    ModbusRequestHandler(ModbusDevice& backend, uint8_t* tx_buffer, std::size_t capacity);
+                                    ModbusRequestHandler(ModbusDevice& device, uint8_t* tx_buffer, std::size_t capacity);
     std::size_t                     handleReadCoils(const modbus::tcp::serialized::ReadValuesReq& req);
     std::size_t                     handleReadDiscreteInputs(const modbus::tcp::serialized::ReadValuesReq& req);
     std::size_t                     handleReadHoldingRegisters(const modbus::tcp::serialized::ReadValuesReq& req);
@@ -32,7 +32,7 @@ public:
     std::size_t                     handleWriteRegisters(const modbus::tcp::serialized::SetRegsRequest& req);
 
 private:
-    ModbusDevice                   &m_backend;
+    ModbusDevice                   &m_device;
     uint8_t                        *m_tx_buffer;
     std::size_t                     m_tx_buffer_capacity;
 
@@ -45,8 +45,8 @@ private:
 
 
 template <typename ModbusDevice>
-ModbusRequestHandler<ModbusDevice>::ModbusRequestHandler(ModbusDevice& backend, uint8_t* tx_buffer, std::size_t capacity) :
-    m_backend(backend),
+ModbusRequestHandler<ModbusDevice>::ModbusRequestHandler(ModbusDevice& device, uint8_t* tx_buffer, std::size_t capacity) :
+    m_device(device),
     m_tx_buffer(tx_buffer),
     m_tx_buffer_capacity(capacity)
 {
@@ -72,7 +72,7 @@ std::size_t ModbusRequestHandler<ModbusDevice>::handleReadCoils(const modbus::tc
     using namespace modbus::tcp;
 
     return handle_read_values_req<encoder::ReadCoilsRsp, MODBUS_MAX_NUM_BITS_IN_READ_REQUEST, READ_COILS>(req, [this](encoder::ReadCoilsRsp& rsp, uint16_t startAddr, uint16_t numValues) {
-        m_backend.getCoils(startAddr, numValues, [&rsp](uint16_t pos, bool value) {
+        m_device.getCoils(startAddr, numValues, [&rsp](uint16_t pos, bool value) {
             rsp.setValue(pos, value);
         });
     });
@@ -83,7 +83,7 @@ template <typename ModbusDevice>
 std::size_t ModbusRequestHandler<ModbusDevice>::handleReadDiscreteInputs(const modbus::tcp::serialized::ReadValuesReq& req) {
     using namespace modbus::tcp;
     return handle_read_values_req<encoder::ReadDiscreteInputsRsp, MODBUS_MAX_NUM_BITS_IN_READ_REQUEST, READ_DISCRETE_INPUTS>(req, [this](encoder::ReadDiscreteInputsRsp& rsp, uint16_t startAddr, uint16_t numValues) {
-        m_backend.getDiscreteInputs(startAddr, numValues, [&rsp](uint16_t pos, bool value) {
+        m_device.getDiscreteInputs(startAddr, numValues, [&rsp](uint16_t pos, bool value) {
             rsp.setValue(pos, value);
         });
     });
@@ -94,7 +94,7 @@ template <typename ModbusDevice>
 std::size_t ModbusRequestHandler<ModbusDevice>::handleReadHoldingRegisters(const modbus::tcp::serialized::ReadValuesReq& req) {
     using namespace modbus::tcp;
     return handle_read_values_req<encoder::ReadHoldingRegsRsp, MODBUS_MAX_NUM_REGS_IN_READ_REQUEST, READ_HOLDING_REGISTERS>(req, [this](encoder::ReadHoldingRegsRsp& rsp, uint16_t startAddr, uint16_t numValues) {
-        m_backend.getHoldingRegs(startAddr, numValues, [&rsp](uint16_t pos, uint16_t value) {
+        m_device.getHoldingRegs(startAddr, numValues, [&rsp](uint16_t pos, uint16_t value) {
             rsp.setValue(pos, value);
         });
     });
@@ -105,7 +105,7 @@ template <typename ModbusDevice>
 std::size_t ModbusRequestHandler<ModbusDevice>::handleReadInputRegisters(const modbus::tcp::serialized::ReadValuesReq& req) {
     using namespace modbus::tcp;
     return handle_read_values_req<encoder::ReadInputRegsRsp, MODBUS_MAX_NUM_REGS_IN_READ_REQUEST, READ_INPUT_REGISTERS>(req, [this](encoder::ReadInputRegsRsp& rsp, uint16_t startAddr, uint16_t numValues) {
-        m_backend.getInputRegs(startAddr, numValues, [&rsp](uint16_t pos, uint16_t value) {
+        m_device.getInputRegs(startAddr, numValues, [&rsp](uint16_t pos, uint16_t value) {
             rsp.setValue(pos, value);
         });
     });
@@ -127,7 +127,7 @@ std::size_t ModbusRequestHandler<ModbusDevice>::handleWriteCoil(const modbus::tc
     encoder::WriteCoilResponse rsp(*buf);
 
     try {
-        m_backend.writeCoil(address, value == 0xFF00 ? true : false);
+        m_device.writeCoil(address, value == 0xFF00 ? true : false);
         rsp.setAddress(address);
         rsp.setValue(value);
         return rsp.message_size();
@@ -152,7 +152,7 @@ std::size_t ModbusRequestHandler<ModbusDevice>::handleWriteRegister(const modbus
     encoder::WriteRegisterResponse rsp(*buf);
 
     try {
-        m_backend.writeRegister(address, value);
+        m_device.writeRegister(address, value);
         rsp.setAddress(address);
         rsp.setValue(value);
         return rsp.message_size();

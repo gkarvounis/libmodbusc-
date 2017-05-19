@@ -9,7 +9,7 @@
 template <typename ModbusDevice>
 class ModbusServer {
 public:
-                                    ModbusServer(boost::asio::io_service& io, ModbusDevice& backend);
+                                    ModbusServer(boost::asio::io_service& io, ModbusDevice& device);
 
     template <typename Callback>
     void                            start(const std::string& ip, uint16_t port, Callback done_cb);
@@ -18,8 +18,7 @@ public:
 private:
     using PModbusSession = std::shared_ptr<ModbusSession<ModbusDevice>>;
 
-
-    ModbusDevice            &m_backend;
+    ModbusDevice                   &m_device;
     boost::asio::ip::tcp::acceptor  m_acceptor;
     std::set<PModbusSession>        m_sessions;
     std::function<void(void)>       m_done_cb;
@@ -37,8 +36,8 @@ private:
 
 
 template <typename ModbusDevice>
-ModbusServer<ModbusDevice>::ModbusServer(boost::asio::io_service& io, ModbusDevice& backend) :
-    m_backend(backend),
+ModbusServer<ModbusDevice>::ModbusServer(boost::asio::io_service& io, ModbusDevice& device) :
+    m_device(device),
     m_acceptor(io),
     m_sessions()
 {}
@@ -69,7 +68,7 @@ void ModbusServer<ModbusDevice>::on_start(const std::string& ip, uint16_t port, 
 
 template <typename ModbusDevice>
 void ModbusServer<ModbusDevice>::init_accepting() {
-    PModbusSession session = std::make_shared<ModbusSession<ModbusDevice>>(m_acceptor.get_io_service(), m_backend);
+    PModbusSession session = std::make_shared<ModbusSession<ModbusDevice>>(m_acceptor.get_io_service(), m_device);
 
     m_acceptor.async_accept(
         session->socket(),

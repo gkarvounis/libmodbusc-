@@ -8,7 +8,7 @@
 template <typename ModbusDevice>
 class ModbusSession : public std::enable_shared_from_this<ModbusSession<ModbusDevice>> {
 public:
-    inline                          ModbusSession(boost::asio::io_service& io, ModbusDevice& backend);
+    inline                          ModbusSession(boost::asio::io_service& io, ModbusDevice& device);
     inline                          ~ModbusSession();
 
     boost::asio::ip::tcp::socket&   socket();
@@ -36,8 +36,8 @@ private:
 
 
 template <typename ModbusDevice>
-ModbusSession<ModbusDevice>::ModbusSession(boost::asio::io_service& io, ModbusDevice& backend) :
-    m_modbus_handler(backend, m_tx_buffer, sizeof(m_tx_buffer)),
+ModbusSession<ModbusDevice>::ModbusSession(boost::asio::io_service& io, ModbusDevice& device) :
+    m_modbus_handler(device, m_tx_buffer, sizeof(m_tx_buffer)),
     m_socket(io)
 {
     std::cout << "new session " << this << std::endl;
@@ -173,8 +173,8 @@ void ModbusSession<ModbusDevice>::handle_message() {
 }
 
 
-template <typename ModbusServiceBackend>
-void ModbusSession<ModbusServiceBackend>::init_response_sending(std::size_t size) {
+template <typename ModbusDevice>
+void ModbusSession<ModbusDevice>::init_response_sending(std::size_t size) {
     auto self = this->shared_from_this();
 
     boost::asio::async_write(
@@ -186,8 +186,8 @@ void ModbusSession<ModbusServiceBackend>::init_response_sending(std::size_t size
 }
 
 
-template <typename ModbusServiceBackend>
-void ModbusSession<ModbusServiceBackend>::on_response_sent(const boost::system::error_code& ec) {
+template <typename ModbusDevice>
+void ModbusSession<ModbusDevice>::on_response_sent(const boost::system::error_code& ec) {
     if (ec) {
         if (m_done_cb) {
             m_done_cb();
