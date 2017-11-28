@@ -1,20 +1,19 @@
 #ifndef MODBUS_CONSTS_HPP
 #define MODBUS_CONSTS_HPP
 
-#include <stdint.h>
+#include <cstdint>
 
 namespace modbus {
 namespace tcp {
 
-static const uint8_t    MODBUS_PROTOCOL_ID = 0;
+static const uint16_t   MODBUS_PROTOCOL_ID = 0;
 static const uint16_t   MODBUS_MAX_NUM_BITS_IN_READ_REQUEST = 0x07D0;
-static const uint8_t    MODBUS_MAX_NUM_REGS_IN_READ_REQUEST = 125;
-static const uint16_t   MODBUS_MAX_NUM_BITS_IN_WRITE_REQUEST = 2000;
-static const uint8_t    MODBUS_MAX_NUM_REGS_IN_WRITE_REQUEST = 125;
+static const uint8_t    MODBUS_MAX_NUM_REGS_IN_READ_REQUEST = 0x007D;
+static const uint16_t   MODBUS_MAX_NUM_BITS_IN_WRITE_REQUEST = 0x07D0;
+static const uint8_t    MODBUS_MAX_NUM_REGS_IN_WRITE_REQUEST = 0x007D;
 
 
-
-enum FunctionCode {
+enum class FunctionCode : uint8_t {
     READ_COILS = 0x01,
     READ_DISCRETE_INPUTS = 0x02,
     READ_HOLDING_REGISTERS = 0x03,
@@ -26,7 +25,7 @@ enum FunctionCode {
 };
 
 
-enum ExceptionCode {
+enum class ExceptionCode : uint8_t {
     ILLEGAL_FUNCTION = 0x01,
     ILLEGAL_DATA_ADDRESS = 0x02,
     ILLEGAL_DATA_VALUE = 0x03,

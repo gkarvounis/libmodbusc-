@@ -1,6 +1,6 @@
 IFLAGS = \
-    -I ../../encoder \
-    -I ../../ \
+    -I ../../src/include \
+    -I ../../src/include/encoder \
     -I ../
 
 
