@@ -139,7 +139,7 @@ std::size_t Encoder::encodeReadReq(const ReqType& req, uint8_t* buffer, std::siz
 
     msg->header.transactionId = htons(m_transactionId.get());
     msg->header.protocolId = htons(MODBUS_PROTOCOL_ID);
-    msg->header.length = htons(sizeof(ReadReq));
+    msg->header.length = htons(sizeof(ReadReq) - 6);
     msg->header.unitId = m_unitId.get();
     msg->header.functionCode = static_cast<uint8_t>(ReqType::functionCode);
 
@@ -169,7 +169,7 @@ std::size_t Encoder::encodeWriteSingleValue(const ReqType& req, uint8_t* buffer,
 
     msg->header.transactionId = htons(m_transactionId.get());
     msg->header.protocolId = htons(MODBUS_PROTOCOL_ID);
-    msg->header.length = htons(sizeof(WriteSingleValue));
+    msg->header.length = htons(sizeof(WriteSingleValue) - 6);
     msg->header.unitId = m_unitId.get();
     msg->header.functionCode = static_cast<uint8_t>(ReqType::functionCode);
 
@@ -221,7 +221,7 @@ std::size_t Encoder::encodeReadBitsRsp(Iterator begin, Iterator end, FunctionCod
 
     msg->header.transactionId = htons(m_transactionId.get());
     msg->header.protocolId = htons(MODBUS_PROTOCOL_ID);
-    msg->header.length = htons(sizeof(ReadCoilsRsp) + numBytes);
+    msg->header.length = htons(sizeof(ReadCoilsRsp) + numBytes - 6);
     msg->header.unitId = m_unitId.get();
     msg->header.functionCode = static_cast<uint8_t>(code);
     msg->numBytes = numBytes;
@@ -267,7 +267,7 @@ std::size_t Encoder::encodeReadRegsRsp(Iterator begin, Iterator end, FunctionCod
 
     msg->header.transactionId = htons(m_transactionId.get());
     msg->header.protocolId = htons(MODBUS_PROTOCOL_ID);
-    msg->header.length = htons(sizeof(ReadRegsRsp) + numBytes);
+    msg->header.length = htons(sizeof(ReadRegsRsp) + numBytes - 6);
     msg->header.unitId = m_unitId.get();
     msg->header.functionCode = static_cast<uint8_t>(code);
     msg->numBytes = numBytes;
