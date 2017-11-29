@@ -6,13 +6,11 @@ TEST_CASE("encode read coils req", "[encoder]") {
 
     mt::Encoder encoder(mt::UnitId(0xab), mt::TransactionId(2));
 
-    uint8_t target[] = {0x00, 0x02, 0x00, 0x00, 0x00, 0x06, 0xab, 0x01, 0x10, 0x20, 0x01, 0x02};
-    uint8_t encoded[16] = {0};
+    std::vector<uint8_t> target{0x00, 0x02, 0x00, 0x00, 0x00, 0x06, 0xab, 0x01, 0x10, 0x20, 0x01, 0x02};
+    std::vector<uint8_t> encoded;
+    encoder.encodeReadCoilsReq(mt::Address(0x1020), mt::NumBits(0x0102), encoded);
 
-    std::size_t ret = encoder.encode(mt::ReadCoilsReq(mt::Address(0x1020), mt::NumBits(0x0102)), encoded, sizeof(encoded));
-
-    REQUIRE(ret == sizeof(target));
-    REQUIRE(std::equal(target, target+sizeof(target), encoded));
+    REQUIRE(target == encoded);
 }
 
 
@@ -21,13 +19,11 @@ TEST_CASE("encode read discrete inputs req", "[encoder]") {
 
     mt::Encoder encoder(mt::UnitId(0xab), mt::TransactionId(2));
 
-    uint8_t target[] = {0x00, 0x02, 0x00, 0x00, 0x00, 0x06, 0xab, 0x02, 0x10, 0x20, 0x01, 0x02};
-    uint8_t encoded[16] = {0};
+    std::vector<uint8_t> target{0x00, 0x02, 0x00, 0x00, 0x00, 0x06, 0xab, 0x02, 0x10, 0x20, 0x01, 0x02};
+    std::vector<uint8_t> encoded;
+    encoder.encodeReadDiscreteInputsReq(mt::Address(0x1020), mt::NumBits(0x0102), encoded);
 
-    std::size_t ret = encoder.encode(mt::ReadDiscreteInputsReq(mt::Address(0x1020), mt::NumBits(0x0102)), encoded, sizeof(encoded));
-
-    REQUIRE(ret == sizeof(target));
-    REQUIRE(std::equal(target, target+sizeof(target), encoded));
+    REQUIRE(target == encoded);
 }
 
 
@@ -36,13 +32,11 @@ TEST_CASE("encode read holding registers req", "[encoder]") {
 
     mt::Encoder encoder(mt::UnitId(0xab), mt::TransactionId(2));
 
-    uint8_t target[] = {0x00, 0x02, 0x00, 0x00, 0x00, 0x06, 0xab, 0x03, 0x10, 0x20, 0x00, 0x02};
-    uint8_t encoded[16] = {0};
+    std::vector<uint8_t> target{0x00, 0x02, 0x00, 0x00, 0x00, 0x06, 0xab, 0x03, 0x10, 0x20, 0x00, 0x02};
+    std::vector<uint8_t> encoded;
+    encoder.encodeReadHoldingRegistersReq(mt::Address(0x1020), mt::NumRegs(0x0002), encoded);
 
-    std::size_t ret = encoder.encode(mt::ReadHoldingRegistersReq(mt::Address(0x1020), mt::NumRegs(0x0002)), encoded, sizeof(encoded));
-
-    REQUIRE(ret == sizeof(target));
-    REQUIRE(std::equal(target, target+sizeof(target), encoded));
+    REQUIRE(target == encoded);
 }
 
 
@@ -51,13 +45,11 @@ TEST_CASE("encode read input registers req", "[encoder]") {
 
     mt::Encoder encoder(mt::UnitId(0xab), mt::TransactionId(2));
 
-    uint8_t target[] = {0x00, 0x02, 0x00, 0x00, 0x00, 0x06, 0xab, 0x04, 0x10, 0x20, 0x00, 0x02};
-    uint8_t encoded[16] = {0};
+    std::vector<uint8_t> target{0x00, 0x02, 0x00, 0x00, 0x00, 0x06, 0xab, 0x04, 0x10, 0x20, 0x00, 0x02};
+    std::vector<uint8_t> encoded;
+    encoder.encodeReadInputRegistersReq(mt::Address(0x1020), mt::NumRegs(0x0002), encoded);
 
-    std::size_t ret = encoder.encode(mt::ReadInputRegistersReq(mt::Address(0x1020), mt::NumRegs(0x0002)), encoded, sizeof(encoded));
-
-    REQUIRE(ret == sizeof(target));
-    REQUIRE(std::equal(target, target+sizeof(target), encoded));
+    REQUIRE(target == encoded);
 }
 
 
@@ -66,13 +58,11 @@ TEST_CASE("encode write single coil req", "[encoder]") {
 
     mt::Encoder encoder(mt::UnitId(0xab), mt::TransactionId(2));
 
-    uint8_t target[] = {0x00, 0x02, 0x00, 0x00, 0x00, 0x06, 0xab, 0x05, 0x10, 0x20, 0xFF, 0x00};
-    uint8_t encoded[16] = {0};
+    std::vector<uint8_t> target{0x00, 0x02, 0x00, 0x00, 0x00, 0x06, 0xab, 0x05, 0x10, 0x20, 0xFF, 0x00};
+    std::vector<uint8_t> encoded;
+    encoder.encodeWriteSingleCoilReq(mt::Address(0x1020), true, encoded);
 
-    std::size_t ret = encoder.encode(mt::WriteSingleCoilReq(mt::Address(0x1020), true), encoded, sizeof(encoded));
-
-    REQUIRE(ret == sizeof(target));
-    REQUIRE(std::equal(target, target+sizeof(target), encoded));
+    REQUIRE(target == encoded);
 }
 
 
@@ -81,13 +71,11 @@ TEST_CASE("encode write single regitster req", "[encoder]") {
 
     mt::Encoder encoder(mt::UnitId(0xab), mt::TransactionId(2));
 
-    uint8_t target[] = {0x00, 0x02, 0x00, 0x00, 0x00, 0x06, 0xab, 0x06, 0x10, 0x20, 0x12, 0x34};
-    uint8_t encoded[16] = {0};
+    std::vector<uint8_t> target{0x00, 0x02, 0x00, 0x00, 0x00, 0x06, 0xab, 0x06, 0x10, 0x20, 0x12, 0x34};
+    std::vector<uint8_t> encoded;
+    encoder.encodeWriteSingleRegisterReq(mt::Address(0x1020), 0x1234, encoded);
 
-    std::size_t ret = encoder.encode(mt::WriteSingleRegisterReq(mt::Address(0x1020), 0x1234), encoded, sizeof(encoded));
-
-    REQUIRE(ret == sizeof(target));
-    REQUIRE(std::equal(target, target+sizeof(target), encoded));
+    REQUIRE(target == encoded);
 }
 
 
@@ -96,13 +84,11 @@ TEST_CASE("encode write single coil rsp", "[encoder]") {
 
     mt::Encoder encoder(mt::UnitId(0xab), mt::TransactionId(2));
 
-    uint8_t target[] = {0x00, 0x02, 0x00, 0x00, 0x00, 0x06, 0xab, 0x05, 0x10, 0x20, 0xFF, 0x00};
-    uint8_t encoded[16] = {0};
+    std::vector<uint8_t> target{0x00, 0x02, 0x00, 0x00, 0x00, 0x06, 0xab, 0x05, 0x10, 0x20, 0xFF, 0x00};
+    std::vector<uint8_t> encoded;
+    encoder.encodeWriteSingleCoilRsp(mt::Address(0x1020), true, encoded);
 
-    std::size_t ret = encoder.encode(mt::WriteSingleCoilRsp(mt::Address(0x1020), true), encoded, sizeof(encoded));
-
-    REQUIRE(ret == sizeof(target));
-    REQUIRE(std::equal(target, target+sizeof(target), encoded));
+    REQUIRE(target == encoded);
 }
 
 
@@ -111,13 +97,11 @@ TEST_CASE("encode write single regitster rsp", "[encoder]") {
 
     mt::Encoder encoder(mt::UnitId(0xab), mt::TransactionId(2));
 
-    uint8_t target[] = {0x00, 0x02, 0x00, 0x00, 0x00, 0x06, 0xab, 0x06, 0x10, 0x20, 0x12, 0x34};
-    uint8_t encoded[16] = {0};
+    std::vector<uint8_t> target{0x00, 0x02, 0x00, 0x00, 0x00, 0x06, 0xab, 0x06, 0x10, 0x20, 0x12, 0x34};
+    std::vector<uint8_t> encoded;
+    encoder.encodeWriteSingleRegisterRsp(mt::Address(0x1020), 0x1234, encoded);
 
-    std::size_t ret = encoder.encode(mt::WriteSingleRegisterRsp(mt::Address(0x1020), 0x1234), encoded, sizeof(encoded));
-
-    REQUIRE(ret == sizeof(target));
-    REQUIRE(std::equal(target, target+sizeof(target), encoded));
+    REQUIRE(target == encoded);
 }
 
 
@@ -200,9 +184,6 @@ TEST_CASE("encode read holding registers rsp", "[encoder]") {
     uint8_t encoded[32] = {0};
 
     std::size_t ret = encoder.encodeReadHoldingRegistersRsp(regs.begin(), regs.end(), encoded, sizeof(encoded));
-
-    //for (unsigned i = 0; i < ret; ++i) std::cout << std::hex << (unsigned)encoded[i] << ' ';
-    //std::cout << std::endl;
 
     REQUIRE(ret == sizeof(target));
     REQUIRE(std::equal(target, target+sizeof(target), encoded));

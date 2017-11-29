@@ -3,6 +3,7 @@
 
 #include "ModbusConsts.hpp"
 #include "ModbusTypes.hpp"
+#include <arpa/inet.h>
 
 namespace modbus {
 namespace tcp {
@@ -14,13 +15,14 @@ public:
 
     void                                setUnitId(const UnitId& unitId);
     void                                setTransactionId(const TransactionId& transactionId);
+    void                                setTargetBuffer(uint8_t* buffer, std::size_t capacity);
 
-    std::size_t                         encode(const ReadCoilsReq&, uint8_t* buffer, std::size_t capacity);
-    std::size_t                         encode(const ReadDiscreteInputsReq&, uint8_t* buffer, std::size_t capacity);
-    std::size_t                         encode(const ReadHoldingRegistersReq&, uint8_t* buffer, std::size_t capacity);
-    std::size_t                         encode(const ReadInputRegistersReq&, uint8_t* buffer, std::size_t capacity);
-    std::size_t                         encode(const WriteSingleCoilReq&, uint8_t* buffer, std::size_t capacity);
-    std::size_t                         encode(const WriteSingleRegisterReq&, uint8_t* buffer, std::size_t capacity);
+    void                                encodeReadCoilsReq(const Address& startAddr, const NumBits& numBits, std::vector<uint8_t>& target);
+    void                                encodeReadDiscreteInputsReq(const Address& startAddr, const NumBits& numBits, std::vector<uint8_t>& target);
+    void                                encodeReadHoldingRegistersReq(const Address& startAddr, const NumRegs& numRegs, std::vector<uint8_t>& target);
+    void                                encodeReadInputRegistersReq(const Address& startAddr, const NumRegs& numRegs, std::vector<uint8_t>& target);
+    void                                encodeWriteSingleCoilReq(const Address& address, bool value, std::vector<uint8_t>& target);
+    void                                encodeWriteSingleRegisterReq(const Address& address, uint16_t value, std::vector<uint8_t>& target);
 
     template<typename Iterator>
     std::size_t                         encodeReadCoilsRsp(Iterator begin, Iterator end, uint8_t* buffer, std::size_t capacity);
@@ -34,8 +36,8 @@ public:
     template<typename Iterator>
     std::size_t                         encodeReadInputRegistersRsp(Iterator begin, Iterator end, uint8_t* buffer, std::size_t capacity);
 
-    std::size_t                         encode(const WriteSingleCoilRsp&, uint8_t* buffer, std::size_t capacity);
-    std::size_t                         encode(const WriteSingleRegisterRsp&, uint8_t* buffer, std::size_t capacity);
+    void                                encodeWriteSingleCoilRsp(const Address& address, bool value, std::vector<uint8_t>& target);
+    void                                encodeWriteSingleRegisterRsp(const Address& address, uint16_t value, std::vector<uint8_t>& target);
 
 private:
     struct Header {
@@ -71,11 +73,8 @@ private:
     } __attribute__((packed));
 
 
-    template <typename ReqType>
-    std::size_t                         encodeReadReq(const ReqType& req, uint8_t* buffer, std::size_t capacity);
-
-    template <typename ReqType>
-    std::size_t                         encodeWriteSingleValue(const ReqType& req, uint8_t* buffer, std::size_t capacity);
+    void                                encodeReadReq(FunctionCode code, uint16_t startAddress, uint16_t numValues, std::vector<uint8_t>& buffer);
+    void                                encodeWriteSingleValue(FunctionCode code, uint16_t address, uint16_t numValues, std::vector<uint8_t>& buffer);
 
     template <typename Iterator>
     std::size_t                         encodeReadBitsRsp(Iterator begin, Iterator end, FunctionCode code, uint8_t* buffer, std::size_t capacity);
@@ -110,83 +109,74 @@ void Encoder::setTransactionId(const TransactionId& transactionId) {
 }
 
 
-std::size_t Encoder::encode(const modbus::tcp::ReadCoilsReq& req, uint8_t* buffer, std::size_t capacity) {
-    return encodeReadReq(req, buffer, capacity);
+void Encoder::encodeReadCoilsReq(const Address& startAddress, const NumBits& numBits, std::vector<uint8_t>& target) {
+    encodeReadReq(FunctionCode::READ_COILS, startAddress.get(), numBits.get(), target);
 }
 
 
-std::size_t Encoder::encode(const ReadDiscreteInputsReq& req, uint8_t* buffer, std::size_t capacity) {
-    return encodeReadReq(req, buffer, capacity);
+void Encoder::encodeReadDiscreteInputsReq(const Address& startAddress, const NumBits& numBits, std::vector<uint8_t>& target) {
+    encodeReadReq(FunctionCode::READ_DISCRETE_INPUTS, startAddress.get(), numBits.get(), target);
 }
 
 
-std::size_t Encoder::encode(const ReadHoldingRegistersReq& req, uint8_t* buffer, std::size_t capacity) {
-    return encodeReadReq(req, buffer, capacity);
+void Encoder::encodeReadHoldingRegistersReq(const Address& startAddress, const NumRegs& numRegs, std::vector<uint8_t>& target) {
+    encodeReadReq(FunctionCode::READ_HOLDING_REGISTERS, startAddress.get(), numRegs.get(), target);
 }
 
 
-std::size_t Encoder::encode(const ReadInputRegistersReq& req, uint8_t* buffer, std::size_t capacity) {
-    return encodeReadReq(req, buffer, capacity);
+void Encoder::encodeReadInputRegistersReq(const Address& startAddress, const NumRegs& numRegs, std::vector<uint8_t>& target) {
+    encodeReadReq(FunctionCode::READ_INPUT_REGISTERS, startAddress.get(), numRegs.get(), target);
 }
 
 
-template <typename ReqType>
-std::size_t Encoder::encodeReadReq(const ReqType& req, uint8_t* buffer, std::size_t capacity) {
-    if (capacity < sizeof(ReadReq))
-        throw std::logic_error("Too small buffer. Cannot encode read request");
+void Encoder::encodeReadReq(FunctionCode funcCode, uint16_t startAddress, uint16_t numValues, std::vector<uint8_t>& target) {
+    target.resize(sizeof(ReadReq));
 
-    auto* msg = reinterpret_cast<Encoder::ReadReq*>(buffer);
+    auto* msg = reinterpret_cast<ReadReq*>(target.data());
 
     msg->header.transactionId = htons(m_transactionId.get());
     msg->header.protocolId = htons(MODBUS_PROTOCOL_ID);
     msg->header.length = htons(sizeof(ReadReq) - 6);
     msg->header.unitId = m_unitId.get();
-    msg->header.functionCode = static_cast<uint8_t>(ReqType::functionCode);
-
-    msg->startAddress = htons(req.getStartAddress().get());
-    msg->numEntries = htons(req.getNumValues().get());
-
-    return sizeof(ReadReq);
+    msg->header.functionCode = static_cast<uint8_t>(funcCode);
+    msg->startAddress = htons(startAddress);
+    msg->numEntries = htons(numValues);
 }
 
 
-std::size_t Encoder::encode(const WriteSingleCoilReq& req, uint8_t* buffer, std::size_t capacity) {
-    return encodeWriteSingleValue(req, buffer, capacity);
+void Encoder::encodeWriteSingleCoilReq(const Address& address, bool value, std::vector<uint8_t>& target) {
+    encodeWriteSingleValue(FunctionCode::WRITE_COIL, address.get(), value ? 0xFF00 : 0x0000, target);
 }
 
 
-std::size_t Encoder::encode(const WriteSingleRegisterReq& req, uint8_t* buffer, std::size_t capacity) {
-    return encodeWriteSingleValue(req, buffer, capacity);
+void Encoder::encodeWriteSingleRegisterReq(const Address& address, uint16_t value, std::vector<uint8_t>& target) {
+    encodeWriteSingleValue(FunctionCode::WRITE_REGISTER, address.get(), value, target);
 }
 
 
-template <typename ReqType>
-std::size_t Encoder::encodeWriteSingleValue(const ReqType& req, uint8_t* buffer, std::size_t capacity) {
-    if (capacity < sizeof(WriteSingleValue))
-        throw std::logic_error("Too small buffer. Cannot encode write single value request");
+void Encoder::encodeWriteSingleValue(FunctionCode funcCode, uint16_t address, uint16_t value, std::vector<uint8_t>& target) {
+    target.resize(sizeof(WriteSingleValue));
 
-    auto* msg = reinterpret_cast<Encoder::WriteSingleValue*>(buffer);
+    auto* msg = reinterpret_cast<Encoder::WriteSingleValue*>(target.data());
 
     msg->header.transactionId = htons(m_transactionId.get());
     msg->header.protocolId = htons(MODBUS_PROTOCOL_ID);
     msg->header.length = htons(sizeof(WriteSingleValue) - 6);
     msg->header.unitId = m_unitId.get();
-    msg->header.functionCode = static_cast<uint8_t>(ReqType::functionCode);
+    msg->header.functionCode = static_cast<uint8_t>(funcCode);
 
-    msg->address = htons(req.getAddress().get());
-    msg->value = htons(req.getValue());
-
-    return sizeof(ReadReq);
+    msg->address = htons(address);
+    msg->value = htons(value);
 }
 
 
-std::size_t Encoder::encode(const WriteSingleCoilRsp& req, uint8_t* buffer, std::size_t capacity) {
-    return encodeWriteSingleValue(req, buffer, capacity);
+void Encoder::encodeWriteSingleCoilRsp(const Address& address, bool value, std::vector<uint8_t>& target) {
+    encodeWriteSingleValue(FunctionCode::WRITE_COIL, address.get(), value ? 0xFF00 : 0x0000, target);
 }
 
 
-std::size_t Encoder::encode(const WriteSingleRegisterRsp& req, uint8_t* buffer, std::size_t capacity) {
-    return encodeWriteSingleValue(req, buffer, capacity);
+void Encoder::encodeWriteSingleRegisterRsp(const Address& address, uint16_t value, std::vector<uint8_t>& target) {
+    encodeWriteSingleValue(FunctionCode::WRITE_REGISTER, address.get(), value, target);
 }
 
 

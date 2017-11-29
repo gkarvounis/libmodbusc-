@@ -4,10 +4,7 @@
 
 #include "ModbusConsts.hpp"
 #include "ModbusTypes.hpp"
-#include "ModbusRequests.hpp"
-#include "ModbusResponses.hpp"
 #include "ModbusEncoder.hpp"
 
 #include "testcases_types.hpp"
-#include "testcases_requests.hpp"
 #include "testcases_encoder.hpp"
