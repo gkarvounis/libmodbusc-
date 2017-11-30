@@ -16,27 +16,27 @@ public:
     void                                setUnitId(const UnitId& unitId);
     void                                setTransactionId(const TransactionId& transactionId);
 
-    void                                encodeReadCoilsReq(const Address& startAddr, const NumBits& numBits, std::vector<uint8_t>& target);
-    void                                encodeReadDiscreteInputsReq(const Address& startAddr, const NumBits& numBits, std::vector<uint8_t>& target);
-    void                                encodeReadHoldingRegistersReq(const Address& startAddr, const NumRegs& numRegs, std::vector<uint8_t>& target);
-    void                                encodeReadInputRegistersReq(const Address& startAddr, const NumRegs& numRegs, std::vector<uint8_t>& target);
-    void                                encodeWriteSingleCoilReq(const Address& address, bool value, std::vector<uint8_t>& target);
-    void                                encodeWriteSingleRegisterReq(const Address& address, uint16_t value, std::vector<uint8_t>& target);
+    void                                encodeReadCoilsReq(const Address& startAddr, const NumBits& numBits, std::vector<uint8_t>& target) const;
+    void                                encodeReadDiscreteInputsReq(const Address& startAddr, const NumBits& numBits, std::vector<uint8_t>& target) const;
+    void                                encodeReadHoldingRegistersReq(const Address& startAddr, const NumRegs& numRegs, std::vector<uint8_t>& target) const;
+    void                                encodeReadInputRegistersReq(const Address& startAddr, const NumRegs& numRegs, std::vector<uint8_t>& target) const;
+    void                                encodeWriteSingleCoilReq(const Address& address, bool value, std::vector<uint8_t>& target) const;
+    void                                encodeWriteSingleRegisterReq(const Address& address, uint16_t value, std::vector<uint8_t>& target) const;
 
     template<typename Iterator>
-    void                                encodeReadCoilsRsp(Iterator begin, Iterator end, std::vector<uint8_t>& target);
+    void                                encodeReadCoilsRsp(Iterator begin, Iterator end, std::vector<uint8_t>& target) const;
 
     template<typename Iterator>
-    void                                encodeReadDiscreteInputsRsp(Iterator begin, Iterator end, std::vector<uint8_t>& target);
+    void                                encodeReadDiscreteInputsRsp(Iterator begin, Iterator end, std::vector<uint8_t>& target) const;
 
     template<typename Iterator>
-    void                                encodeReadHoldingRegistersRsp(Iterator begin, Iterator end, std::vector<uint8_t>& target);
+    void                                encodeReadHoldingRegistersRsp(Iterator begin, Iterator end, std::vector<uint8_t>& target) const;
 
     template<typename Iterator>
-    void                                encodeReadInputRegistersRsp(Iterator begin, Iterator end, std::vector<uint8_t>& target);
+    void                                encodeReadInputRegistersRsp(Iterator begin, Iterator end, std::vector<uint8_t>& target) const;
 
-    void                                encodeWriteSingleCoilRsp(const Address& address, bool value, std::vector<uint8_t>& target);
-    void                                encodeWriteSingleRegisterRsp(const Address& address, uint16_t value, std::vector<uint8_t>& target);
+    void                                encodeWriteSingleCoilRsp(const Address& address, bool value, std::vector<uint8_t>& target) const;
+    void                                encodeWriteSingleRegisterRsp(const Address& address, uint16_t value, std::vector<uint8_t>& target) const;
 
 private:
     struct Header {
@@ -72,14 +72,14 @@ private:
     } __attribute__((packed));
 
 
-    void                                encodeReadReq(FunctionCode code, uint16_t startAddress, uint16_t numValues, std::vector<uint8_t>& buffer);
-    void                                encodeWriteSingleValue(FunctionCode code, uint16_t address, uint16_t numValues, std::vector<uint8_t>& buffer);
+    void                                encodeReadReq(FunctionCode code, uint16_t startAddress, uint16_t numValues, std::vector<uint8_t>& buffer) const;
+    void                                encodeWriteSingleValue(FunctionCode code, uint16_t address, uint16_t numValues, std::vector<uint8_t>& buffer) const;
 
     template <typename Iterator>
-    void                                encodeReadBitsRsp(Iterator begin, Iterator end, FunctionCode code, std::vector<uint8_t>& buffer);
+    void                                encodeReadBitsRsp(Iterator begin, Iterator end, FunctionCode code, std::vector<uint8_t>& buffer) const;
 
     template <typename Iterator>
-    std::size_t                         encodeReadRegsRsp(Iterator begin, Iterator end, FunctionCode code, std::vector<uint8_t>& buffer);
+    void                                encodeReadRegsRsp(Iterator begin, Iterator end, FunctionCode code, std::vector<uint8_t>& buffer) const;
 
     TransactionId                       m_transactionId;
     UnitId                              m_unitId;
@@ -108,27 +108,27 @@ void Encoder::setTransactionId(const TransactionId& transactionId) {
 }
 
 
-void Encoder::encodeReadCoilsReq(const Address& startAddress, const NumBits& numBits, std::vector<uint8_t>& target) {
+void Encoder::encodeReadCoilsReq(const Address& startAddress, const NumBits& numBits, std::vector<uint8_t>& target) const {
     encodeReadReq(FunctionCode::READ_COILS, startAddress.get(), numBits.get(), target);
 }
 
 
-void Encoder::encodeReadDiscreteInputsReq(const Address& startAddress, const NumBits& numBits, std::vector<uint8_t>& target) {
+void Encoder::encodeReadDiscreteInputsReq(const Address& startAddress, const NumBits& numBits, std::vector<uint8_t>& target) const {
     encodeReadReq(FunctionCode::READ_DISCRETE_INPUTS, startAddress.get(), numBits.get(), target);
 }
 
 
-void Encoder::encodeReadHoldingRegistersReq(const Address& startAddress, const NumRegs& numRegs, std::vector<uint8_t>& target) {
+void Encoder::encodeReadHoldingRegistersReq(const Address& startAddress, const NumRegs& numRegs, std::vector<uint8_t>& target) const {
     encodeReadReq(FunctionCode::READ_HOLDING_REGISTERS, startAddress.get(), numRegs.get(), target);
 }
 
 
-void Encoder::encodeReadInputRegistersReq(const Address& startAddress, const NumRegs& numRegs, std::vector<uint8_t>& target) {
+void Encoder::encodeReadInputRegistersReq(const Address& startAddress, const NumRegs& numRegs, std::vector<uint8_t>& target) const {
     encodeReadReq(FunctionCode::READ_INPUT_REGISTERS, startAddress.get(), numRegs.get(), target);
 }
 
 
-void Encoder::encodeReadReq(FunctionCode funcCode, uint16_t startAddress, uint16_t numValues, std::vector<uint8_t>& target) {
+void Encoder::encodeReadReq(FunctionCode funcCode, uint16_t startAddress, uint16_t numValues, std::vector<uint8_t>& target) const {
     target.resize(sizeof(ReadReq));
 
     auto* msg = reinterpret_cast<ReadReq*>(target.data());
@@ -143,17 +143,17 @@ void Encoder::encodeReadReq(FunctionCode funcCode, uint16_t startAddress, uint16
 }
 
 
-void Encoder::encodeWriteSingleCoilReq(const Address& address, bool value, std::vector<uint8_t>& target) {
+void Encoder::encodeWriteSingleCoilReq(const Address& address, bool value, std::vector<uint8_t>& target) const {
     encodeWriteSingleValue(FunctionCode::WRITE_COIL, address.get(), value ? 0xFF00 : 0x0000, target);
 }
 
 
-void Encoder::encodeWriteSingleRegisterReq(const Address& address, uint16_t value, std::vector<uint8_t>& target) {
+void Encoder::encodeWriteSingleRegisterReq(const Address& address, uint16_t value, std::vector<uint8_t>& target) const {
     encodeWriteSingleValue(FunctionCode::WRITE_REGISTER, address.get(), value, target);
 }
 
 
-void Encoder::encodeWriteSingleValue(FunctionCode funcCode, uint16_t address, uint16_t value, std::vector<uint8_t>& target) {
+void Encoder::encodeWriteSingleValue(FunctionCode funcCode, uint16_t address, uint16_t value, std::vector<uint8_t>& target) const {
     target.resize(sizeof(WriteSingleValue));
 
     auto* msg = reinterpret_cast<Encoder::WriteSingleValue*>(target.data());
@@ -169,30 +169,30 @@ void Encoder::encodeWriteSingleValue(FunctionCode funcCode, uint16_t address, ui
 }
 
 
-void Encoder::encodeWriteSingleCoilRsp(const Address& address, bool value, std::vector<uint8_t>& target) {
+void Encoder::encodeWriteSingleCoilRsp(const Address& address, bool value, std::vector<uint8_t>& target) const {
     encodeWriteSingleValue(FunctionCode::WRITE_COIL, address.get(), value ? 0xFF00 : 0x0000, target);
 }
 
 
-void Encoder::encodeWriteSingleRegisterRsp(const Address& address, uint16_t value, std::vector<uint8_t>& target) {
+void Encoder::encodeWriteSingleRegisterRsp(const Address& address, uint16_t value, std::vector<uint8_t>& target) const {
     encodeWriteSingleValue(FunctionCode::WRITE_REGISTER, address.get(), value, target);
 }
 
 
 template<typename Iterator>
-void Encoder::encodeReadCoilsRsp(Iterator begin, Iterator end, std::vector<uint8_t>& target) {
+void Encoder::encodeReadCoilsRsp(Iterator begin, Iterator end, std::vector<uint8_t>& target) const {
     encodeReadBitsRsp(begin, end, FunctionCode::READ_COILS, target);
 }
 
 
 template<typename Iterator>
-void Encoder::encodeReadDiscreteInputsRsp(Iterator begin, Iterator end, std::vector<uint8_t>& target) {
+void Encoder::encodeReadDiscreteInputsRsp(Iterator begin, Iterator end, std::vector<uint8_t>& target) const {
     encodeReadBitsRsp(begin, end, FunctionCode::READ_DISCRETE_INPUTS, target);
 }
 
 
 template <typename Iterator>
-void Encoder::encodeReadBitsRsp(Iterator begin, Iterator end, FunctionCode code, std::vector<uint8_t>& target) {
+void Encoder::encodeReadBitsRsp(Iterator begin, Iterator end, FunctionCode code, std::vector<uint8_t>& target) const {
     std::size_t num_bits = 0;
     for (auto it = begin; it != end; ++it)
         num_bits++;
@@ -228,19 +228,19 @@ void Encoder::encodeReadBitsRsp(Iterator begin, Iterator end, FunctionCode code,
 
 
 template<typename Iterator>
-void Encoder::encodeReadHoldingRegistersRsp(Iterator begin, Iterator end, std::vector<uint8_t>& target) {
+void Encoder::encodeReadHoldingRegistersRsp(Iterator begin, Iterator end, std::vector<uint8_t>& target) const {
     encodeReadRegsRsp(begin, end, FunctionCode::READ_HOLDING_REGISTERS, target);
 }
 
 
 template<typename Iterator>
-void Encoder::encodeReadInputRegistersRsp(Iterator begin, Iterator end, std::vector<uint8_t>& target) {
+void Encoder::encodeReadInputRegistersRsp(Iterator begin, Iterator end, std::vector<uint8_t>& target) const {
     encodeReadRegsRsp(begin, end, FunctionCode::READ_INPUT_REGISTERS, target);
 }
 
 
 template <typename Iterator>
-std::size_t Encoder::encodeReadRegsRsp(Iterator begin, Iterator end, FunctionCode code, std::vector<uint8_t>& target) {
+void Encoder::encodeReadRegsRsp(Iterator begin, Iterator end, FunctionCode code, std::vector<uint8_t>& target) const {
     std::size_t numBytes = 0;
     for (auto it = begin; it != end; ++it)
         numBytes += 2;
@@ -259,9 +259,10 @@ std::size_t Encoder::encodeReadRegsRsp(Iterator begin, Iterator end, FunctionCod
     std::size_t pos = 0;
     for (auto it = begin; it != end; ++it)
         msg->regs[pos++] = htons(*it);
-
-    return sizeof(ReadRegsRsp) + numBytes;
 }
+
+
+//void
 
 } // namespace tcp
 } // namespace modbus
