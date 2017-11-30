@@ -15,7 +15,6 @@ public:
 
     void                                setUnitId(const UnitId& unitId);
     void                                setTransactionId(const TransactionId& transactionId);
-    void                                setTargetBuffer(uint8_t* buffer, std::size_t capacity);
 
     void                                encodeReadCoilsReq(const Address& startAddr, const NumBits& numBits, std::vector<uint8_t>& target);
     void                                encodeReadDiscreteInputsReq(const Address& startAddr, const NumBits& numBits, std::vector<uint8_t>& target);
