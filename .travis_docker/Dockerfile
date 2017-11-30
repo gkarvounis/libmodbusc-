@@ -1,3 +1,3 @@
 FROM ubuntu:latest
 RUN apt-get -y update && apt-get -y upgrade && apt-get -y install g++ libboost-all-dev make cmake
-CMD cd /root/libmodbusc++/test && mkdir build && cd build && cmake ../ && make && test/encoder/testencoder
+CMD cd /root/libmodbusc++/ && mkdir build && cd build && cmake ../ && make && test/encoder/testencoder
