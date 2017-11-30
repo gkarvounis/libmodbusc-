@@ -200,4 +200,17 @@ TEST_CASE("encode read input registers rsp", "[encoder]") {
     REQUIRE(target == encoded);
 }
 
+TEST_CASE("encode exception rsp", "[encoder]") {
+    namespace mt = modbus::tcp;
+
+    mt::Encoder encoder(mt::UnitId(0xab), mt::TransactionId(2));
+
+    std::vector<uint8_t> target{0x00, 0x02, 0x00, 0x00, 0x00, 0x03, 0xab, 0x81, 0x01};
+    std::vector<uint8_t> encoded;
+
+    encoder.encodeErrorRsp(mt::FunctionCode::READ_COILS, mt::ExceptionCode::ILLEGAL_FUNCTION, encoded);
+
+    REQUIRE(target == encoded);
+}
+
 #endif

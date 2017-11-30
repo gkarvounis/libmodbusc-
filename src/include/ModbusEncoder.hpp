@@ -38,6 +38,7 @@ public:
     void                                encodeWriteSingleCoilRsp(const Address& address, bool value, std::vector<uint8_t>& target) const;
     void                                encodeWriteSingleRegisterRsp(const Address& address, uint16_t value, std::vector<uint8_t>& target) const;
 
+    void                                encodeErrorRsp(FunctionCode code, ExceptionCode ex, std::vector<uint8_t>& target) const;
 private:
     struct Header {
         uint16_t                        transactionId;
@@ -69,6 +70,11 @@ private:
         Header                          header;
         uint8_t                         numBytes;
         uint16_t                        regs[];
+    } __attribute__((packed));
+
+    struct ExceptionRsp {
+        Header                          header;
+        uint8_t                         code;
     } __attribute__((packed));
 
 
@@ -262,7 +268,18 @@ void Encoder::encodeReadRegsRsp(Iterator begin, Iterator end, FunctionCode code,
 }
 
 
-//void
+void Encoder::encodeErrorRsp(FunctionCode code, ExceptionCode ex, std::vector<uint8_t>& target) const {
+    target.resize(sizeof(ExceptionRsp));
+
+    auto* msg = reinterpret_cast<Encoder::ExceptionRsp*>(target.data());
+
+    msg->header.transactionId = htons(m_transactionId.get());
+    msg->header.protocolId = htons(MODBUS_PROTOCOL_ID);
+    msg->header.length = htons(sizeof(ExceptionRsp) - 6);
+    msg->header.unitId = m_unitId.get();
+    msg->header.functionCode = static_cast<uint8_t>(code) | 0x80;
+    msg->code = static_cast<uint8_t>(ex);
+}
 
 } // namespace tcp
 } // namespace modbus
