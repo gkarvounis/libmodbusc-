@@ -40,43 +40,6 @@ public:
 
     void                                encodeErrorRsp(FunctionCode code, ExceptionCode ex, std::vector<uint8_t>& target) const;
 private:
-    struct Header {
-        uint16_t                        transactionId;
-        uint16_t                        protocolId;
-        uint16_t                        length;
-        uint8_t                         unitId;
-        uint8_t                         functionCode;
-    } __attribute__((packed));
-
-    struct ReadReq {
-        Header                          header;
-        uint16_t                        startAddress;
-        uint16_t                        numEntries;
-    } __attribute__((packed));
-
-    struct WriteSingleValue { // no need to differentiate request / response
-        Header                          header;
-        uint16_t                        address;
-        uint16_t                        value;
-    } __attribute__((packed));
-
-    struct ReadCoilsRsp {
-        Header                          header;
-        uint8_t                         numBytes;
-        uint8_t                         coils[];
-    } __attribute__((packed));
-
-    struct ReadRegsRsp {
-        Header                          header;
-        uint8_t                         numBytes;
-        uint16_t                        regs[];
-    } __attribute__((packed));
-
-    struct ExceptionRsp {
-        Header                          header;
-        uint8_t                         code;
-    } __attribute__((packed));
-
 
     void                                encodeReadReq(FunctionCode code, uint16_t startAddress, uint16_t numValues, std::vector<uint8_t>& buffer) const;
     void                                encodeWriteSingleValue(FunctionCode code, uint16_t address, uint16_t numValues, std::vector<uint8_t>& buffer) const;
@@ -162,7 +125,7 @@ void Encoder::encodeWriteSingleRegisterReq(const Address& address, uint16_t valu
 void Encoder::encodeWriteSingleValue(FunctionCode funcCode, uint16_t address, uint16_t value, std::vector<uint8_t>& target) const {
     target.resize(sizeof(WriteSingleValue));
 
-    auto* msg = reinterpret_cast<Encoder::WriteSingleValue*>(target.data());
+    auto* msg = reinterpret_cast<WriteSingleValue*>(target.data());
 
     msg->header.transactionId = htons(m_transactionId.get());
     msg->header.protocolId = htons(MODBUS_PROTOCOL_ID);
@@ -210,7 +173,7 @@ void Encoder::encodeReadBitsRsp(Iterator begin, Iterator end, FunctionCode code,
     target.resize(sizeof(ReadCoilsRsp) + numBytes);
     std::fill(target.begin(), target.end(), 0);
 
-    auto* msg = reinterpret_cast<Encoder::ReadCoilsRsp*>(target.data());
+    auto* msg = reinterpret_cast<ReadCoilsRsp*>(target.data());
 
     msg->header.transactionId = htons(m_transactionId.get());
     msg->header.protocolId = htons(MODBUS_PROTOCOL_ID);
@@ -253,7 +216,7 @@ void Encoder::encodeReadRegsRsp(Iterator begin, Iterator end, FunctionCode code,
 
     target.resize(sizeof(ReadRegsRsp) + numBytes);
 
-    auto* msg = reinterpret_cast<Encoder::ReadRegsRsp*>(target.data());
+    auto* msg = reinterpret_cast<ReadRegsRsp*>(target.data());
 
     msg->header.transactionId = htons(m_transactionId.get());
     msg->header.protocolId = htons(MODBUS_PROTOCOL_ID);
@@ -271,7 +234,7 @@ void Encoder::encodeReadRegsRsp(Iterator begin, Iterator end, FunctionCode code,
 void Encoder::encodeErrorRsp(FunctionCode code, ExceptionCode ex, std::vector<uint8_t>& target) const {
     target.resize(sizeof(ExceptionRsp));
 
-    auto* msg = reinterpret_cast<Encoder::ExceptionRsp*>(target.data());
+    auto* msg = reinterpret_cast<ExceptionRsp*>(target.data());
 
     msg->header.transactionId = htons(m_transactionId.get());
     msg->header.protocolId = htons(MODBUS_PROTOCOL_ID);
