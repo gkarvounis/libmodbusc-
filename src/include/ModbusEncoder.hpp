@@ -25,16 +25,16 @@ public:
     void                                encodeWriteSingleRegisterReq(const Address& address, uint16_t value, std::vector<uint8_t>& target);
 
     template<typename Iterator>
-    std::size_t                         encodeReadCoilsRsp(Iterator begin, Iterator end, uint8_t* buffer, std::size_t capacity);
+    void                                encodeReadCoilsRsp(Iterator begin, Iterator end, std::vector<uint8_t>& target);
 
     template<typename Iterator>
-    std::size_t                         encodeReadDiscreteInputsRsp(Iterator begin, Iterator end, uint8_t* buffer, std::size_t capacity);
+    void                                encodeReadDiscreteInputsRsp(Iterator begin, Iterator end, std::vector<uint8_t>& target);
 
     template<typename Iterator>
-    std::size_t                         encodeReadHoldingRegistersRsp(Iterator begin, Iterator end, uint8_t* buffer, std::size_t capacity);
+    void                                encodeReadHoldingRegistersRsp(Iterator begin, Iterator end, std::vector<uint8_t>& target);
 
     template<typename Iterator>
-    std::size_t                         encodeReadInputRegistersRsp(Iterator begin, Iterator end, uint8_t* buffer, std::size_t capacity);
+    void                                encodeReadInputRegistersRsp(Iterator begin, Iterator end, std::vector<uint8_t>& target);
 
     void                                encodeWriteSingleCoilRsp(const Address& address, bool value, std::vector<uint8_t>& target);
     void                                encodeWriteSingleRegisterRsp(const Address& address, uint16_t value, std::vector<uint8_t>& target);
@@ -77,10 +77,10 @@ private:
     void                                encodeWriteSingleValue(FunctionCode code, uint16_t address, uint16_t numValues, std::vector<uint8_t>& buffer);
 
     template <typename Iterator>
-    std::size_t                         encodeReadBitsRsp(Iterator begin, Iterator end, FunctionCode code, uint8_t* buffer, std::size_t capacity);
+    void                                encodeReadBitsRsp(Iterator begin, Iterator end, FunctionCode code, std::vector<uint8_t>& buffer);
 
     template <typename Iterator>
-    std::size_t                         encodeReadRegsRsp(Iterator begin, Iterator end, FunctionCode code, uint8_t* buffer, std::size_t capacity);
+    std::size_t                         encodeReadRegsRsp(Iterator begin, Iterator end, FunctionCode code, std::vector<uint8_t>& buffer);
 
     TransactionId                       m_transactionId;
     UnitId                              m_unitId;
@@ -181,19 +181,19 @@ void Encoder::encodeWriteSingleRegisterRsp(const Address& address, uint16_t valu
 
 
 template<typename Iterator>
-std::size_t Encoder::encodeReadCoilsRsp(Iterator begin, Iterator end, uint8_t* buffer, std::size_t capacity) {
-    return encodeReadBitsRsp(begin, end, FunctionCode::READ_COILS, buffer, capacity);
+void Encoder::encodeReadCoilsRsp(Iterator begin, Iterator end, std::vector<uint8_t>& target) {
+    encodeReadBitsRsp(begin, end, FunctionCode::READ_COILS, target);
 }
 
 
 template<typename Iterator>
-std::size_t Encoder::encodeReadDiscreteInputsRsp(Iterator begin, Iterator end, uint8_t* buffer, std::size_t capacity) {
-    return encodeReadBitsRsp(begin, end, FunctionCode::READ_DISCRETE_INPUTS, buffer, capacity);
+void Encoder::encodeReadDiscreteInputsRsp(Iterator begin, Iterator end, std::vector<uint8_t>& target) {
+    encodeReadBitsRsp(begin, end, FunctionCode::READ_DISCRETE_INPUTS, target);
 }
 
 
 template <typename Iterator>
-std::size_t Encoder::encodeReadBitsRsp(Iterator begin, Iterator end, FunctionCode code, uint8_t* buffer, std::size_t capacity) {
+void Encoder::encodeReadBitsRsp(Iterator begin, Iterator end, FunctionCode code, std::vector<uint8_t>& target) {
     std::size_t num_bits = 0;
     for (auto it = begin; it != end; ++it)
         num_bits++;
@@ -202,12 +202,10 @@ std::size_t Encoder::encodeReadBitsRsp(Iterator begin, Iterator end, FunctionCod
     if (num_bits%8 != 0)
         numBytes += 1;
 
-    if (capacity < sizeof(ReadCoilsRsp) + numBytes)
-        throw std::logic_error("Too small buffer. Cannot encode read coils response");
+    target.resize(sizeof(ReadCoilsRsp) + numBytes);
+    std::fill(target.begin(), target.end(), 0);
 
-    memset(buffer, 0, capacity);
-
-    auto* msg = reinterpret_cast<Encoder::ReadCoilsRsp*>(buffer);
+    auto* msg = reinterpret_cast<Encoder::ReadCoilsRsp*>(target.data());
 
     msg->header.transactionId = htons(m_transactionId.get());
     msg->header.protocolId = htons(MODBUS_PROTOCOL_ID);
@@ -227,33 +225,30 @@ std::size_t Encoder::encodeReadBitsRsp(Iterator begin, Iterator end, FunctionCod
 
         ++pos;
     }
-
-    return sizeof(ReadCoilsRsp) + numBytes;
 }
 
 
 template<typename Iterator>
-std::size_t Encoder::encodeReadHoldingRegistersRsp(Iterator begin, Iterator end, uint8_t* buffer, std::size_t capacity) {
-    return encodeReadRegsRsp(begin, end, FunctionCode::READ_HOLDING_REGISTERS, buffer, capacity);
+void Encoder::encodeReadHoldingRegistersRsp(Iterator begin, Iterator end, std::vector<uint8_t>& target) {
+    encodeReadRegsRsp(begin, end, FunctionCode::READ_HOLDING_REGISTERS, target);
 }
 
 
 template<typename Iterator>
-std::size_t Encoder::encodeReadInputRegistersRsp(Iterator begin, Iterator end, uint8_t* buffer, std::size_t capacity) {
-    return encodeReadRegsRsp(begin, end, FunctionCode::READ_INPUT_REGISTERS, buffer, capacity);
+void Encoder::encodeReadInputRegistersRsp(Iterator begin, Iterator end, std::vector<uint8_t>& target) {
+    encodeReadRegsRsp(begin, end, FunctionCode::READ_INPUT_REGISTERS, target);
 }
 
 
 template <typename Iterator>
-std::size_t Encoder::encodeReadRegsRsp(Iterator begin, Iterator end, FunctionCode code, uint8_t* buffer, std::size_t capacity) {
+std::size_t Encoder::encodeReadRegsRsp(Iterator begin, Iterator end, FunctionCode code, std::vector<uint8_t>& target) {
     std::size_t numBytes = 0;
     for (auto it = begin; it != end; ++it)
         numBytes += 2;
 
-    if (capacity < sizeof(ReadRegsRsp) + numBytes)
-        throw std::logic_error("Too small buffer. Cannot encode read registers response");
+    target.resize(sizeof(ReadRegsRsp) + numBytes);
 
-    auto* msg = reinterpret_cast<Encoder::ReadRegsRsp*>(buffer);
+    auto* msg = reinterpret_cast<Encoder::ReadRegsRsp*>(target.data());
 
     msg->header.transactionId = htons(m_transactionId.get());
     msg->header.protocolId = htons(MODBUS_PROTOCOL_ID);

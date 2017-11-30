@@ -112,13 +112,12 @@ TEST_CASE("encode read coils rsp, encode 4 coils", "[encoder]") {
 
     std::initializer_list<bool> coils{1, 0, 1, 0};
 
-    uint8_t target[] = {0x00, 0x02, 0x00, 0x00, 0x00, 0x04, 0xab, 0x01, 0x01, 0b00000101};
-    uint8_t encoded[32] = {0};
+    std::vector<uint8_t> target{0x00, 0x02, 0x00, 0x00, 0x00, 0x04, 0xab, 0x01, 0x01, 0b00000101};
+    std::vector<uint8_t> encoded;
 
-    std::size_t ret = encoder.encodeReadCoilsRsp(coils.begin(), coils.end(), encoded, sizeof(encoded));
+    encoder.encodeReadCoilsRsp(coils.begin(), coils.end(), encoded);
 
-    REQUIRE(ret == sizeof(target));
-    REQUIRE(std::equal(target, target+sizeof(target), encoded));
+    REQUIRE(target == encoded);
 }
 
 
@@ -129,13 +128,12 @@ TEST_CASE("encode read coils rsp, encode 8 coils", "[encoder]") {
 
     std::initializer_list<bool> coils{1, 0, 1, 0, 1, 0, 1, 0};
 
-    uint8_t target[] = {0x00, 0x02, 0x00, 0x00, 0x00, 0x04, 0xab, 0x01, 0x01, 0b01010101};
-    uint8_t encoded[32] = {0};
+    std::vector<uint8_t> target{0x00, 0x02, 0x00, 0x00, 0x00, 0x04, 0xab, 0x01, 0x01, 0b01010101};
+    std::vector<uint8_t> encoded;
 
-    std::size_t ret = encoder.encodeReadCoilsRsp(coils.begin(), coils.end(), encoded, sizeof(encoded));
+    encoder.encodeReadCoilsRsp(coils.begin(), coils.end(), encoded);
 
-    REQUIRE(ret == sizeof(target));
-    REQUIRE(std::equal(target, target+sizeof(target), encoded));
+    REQUIRE(target == encoded);
 }
 
 
@@ -146,13 +144,12 @@ TEST_CASE("encode read coils rsp, encode 10 coils", "[encoder]") {
 
     std::initializer_list<bool> coils{1, 0, 1, 0, 1, 0, 1, 0, 1, 1};
 
-    uint8_t target[] = {0x00, 0x02, 0x00, 0x00, 0x00, 0x05, 0xab, 0x01, 0x02, 0b01010101, 0b00000011};
-    uint8_t encoded[32] = {0};
+    std::vector<uint8_t> target{0x00, 0x02, 0x00, 0x00, 0x00, 0x05, 0xab, 0x01, 0x02, 0b01010101, 0b00000011};
+    std::vector<uint8_t> encoded;
 
-    std::size_t ret = encoder.encodeReadCoilsRsp(coils.begin(), coils.end(), encoded, sizeof(encoded));
+    encoder.encodeReadCoilsRsp(coils.begin(), coils.end(), encoded);
 
-    REQUIRE(ret == sizeof(target));
-    REQUIRE(std::equal(target, target+sizeof(target), encoded));
+    REQUIRE(target == encoded);
 }
 
 
@@ -163,13 +160,12 @@ TEST_CASE("encode read discrete inputs rsp, encode 10 coils", "[encoder]") {
 
     std::initializer_list<bool> coils{1, 0, 1, 0, 1, 0, 1, 0, 1, 1};
 
-    uint8_t target[] = {0x00, 0x02, 0x00, 0x00, 0x00, 0x05, 0xab, 0x02, 0x02, 0b01010101, 0b00000011};
-    uint8_t encoded[32] = {0};
+    std::vector<uint8_t> target{0x00, 0x02, 0x00, 0x00, 0x00, 0x05, 0xab, 0x02, 0x02, 0b01010101, 0b00000011};
+    std::vector<uint8_t> encoded;
 
-    std::size_t ret = encoder.encodeReadDiscreteInputsRsp(coils.begin(), coils.end(), encoded, sizeof(encoded));
+    encoder.encodeReadDiscreteInputsRsp(coils.begin(), coils.end(), encoded);
 
-    REQUIRE(ret == sizeof(target));
-    REQUIRE(std::equal(target, target+sizeof(target), encoded));
+    REQUIRE(target == encoded);
 }
 
 
@@ -180,13 +176,12 @@ TEST_CASE("encode read holding registers rsp", "[encoder]") {
 
     std::initializer_list<uint16_t> regs{0x0102, 0x0304};
 
-    uint8_t target[] = {0x00, 0x02, 0x00, 0x00, 0x00, 0x07, 0xab, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04};
-    uint8_t encoded[32] = {0};
+    std::vector<uint8_t> target{0x00, 0x02, 0x00, 0x00, 0x00, 0x07, 0xab, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04};
+    std::vector<uint8_t> encoded;
 
-    std::size_t ret = encoder.encodeReadHoldingRegistersRsp(regs.begin(), regs.end(), encoded, sizeof(encoded));
+    encoder.encodeReadHoldingRegistersRsp(regs.begin(), regs.end(), encoded);
 
-    REQUIRE(ret == sizeof(target));
-    REQUIRE(std::equal(target, target+sizeof(target), encoded));
+    REQUIRE(target == encoded);
 }
 
 
@@ -197,13 +192,12 @@ TEST_CASE("encode read input registers rsp", "[encoder]") {
 
     std::initializer_list<uint16_t> regs{0x0102, 0x0304};
 
-    uint8_t target[] = {0x00, 0x02, 0x00, 0x00, 0x00, 0x07, 0xab, 0x04, 0x04, 0x01, 0x02, 0x03, 0x04};
-    uint8_t encoded[32] = {0};
+    std::vector<uint8_t> target{0x00, 0x02, 0x00, 0x00, 0x00, 0x07, 0xab, 0x04, 0x04, 0x01, 0x02, 0x03, 0x04};
+    std::vector<uint8_t> encoded;
 
-    std::size_t ret = encoder.encodeReadInputRegistersRsp(regs.begin(), regs.end(), encoded, sizeof(encoded));
+    encoder.encodeReadInputRegistersRsp(regs.begin(), regs.end(), encoded);
 
-    REQUIRE(ret == sizeof(target));
-    REQUIRE(std::equal(target, target+sizeof(target), encoded));
+    REQUIRE(target == encoded);
 }
 
 #endif
