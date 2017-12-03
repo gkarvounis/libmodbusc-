@@ -39,6 +39,22 @@ struct ReadRegsRsp {
     uint16_t                        regs[];
 } __attribute__((packed));
 
+struct WriteCoilsReq {
+    Header                          header;
+    uint16_t                        startAddress;
+    uint16_t                        numBits;
+    uint8_t                         numBytes;
+    uint8_t                         coils[];
+} __attribute__((packed));
+
+struct WriteRegsReq {
+    Header                          header;
+    uint16_t                        startAddress;
+    uint16_t                        numRegs;
+    uint8_t                         numBytes;
+    uint16_t                        regs[];
+} __attribute__((packed));
+
 struct ExceptionRsp {
     Header                          header;
     uint8_t                         code;

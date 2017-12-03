@@ -23,6 +23,12 @@ public:
     void                                encodeWriteSingleCoilReq(const Address& address, bool value, std::vector<uint8_t>& target) const;
     void                                encodeWriteSingleRegisterReq(const Address& address, uint16_t value, std::vector<uint8_t>& target) const;
 
+    template <typename Iterator>
+    void                                encodeWriteCoilsReq(const Address& startAddress, Iterator begin, Iterator end, std::vector<uint8_t>& target) const;
+
+    template <typename Iterator>
+    void                                encodeWriteRegistersReq(const Address& startAddress, Iterator begin, Iterator end, std::vector<uint8_t>& target) const;
+
     template<typename Iterator>
     void                                encodeReadCoilsRsp(Iterator begin, Iterator end, std::vector<uint8_t>& target) const;
 
@@ -119,6 +125,69 @@ void Encoder::encodeWriteSingleCoilReq(const Address& address, bool value, std::
 
 void Encoder::encodeWriteSingleRegisterReq(const Address& address, uint16_t value, std::vector<uint8_t>& target) const {
     encodeWriteSingleValue(FunctionCode::WRITE_REGISTER, address.get(), value, target);
+}
+
+
+template <typename Iterator>
+void Encoder::encodeWriteCoilsReq(const Address& startAddress, Iterator begin, Iterator end, std::vector<uint8_t>& target) const {
+    std::size_t num_bits = 0;
+    for (auto it = begin; it != end; ++it)
+        num_bits++;
+
+    std::size_t numBytes = num_bits/8;
+    if (num_bits%8 != 0)
+        numBytes += 1;
+
+    target.resize(sizeof(WriteCoilsReq) + numBytes);
+    std::fill(target.begin(), target.end(), 0);
+
+    auto* msg = reinterpret_cast<WriteCoilsReq*>(target.data());
+
+    msg->header.transactionId = htons(m_transactionId.get());
+    msg->header.protocolId = htons(MODBUS_PROTOCOL_ID);
+    msg->header.length = htons(sizeof(WriteCoilsReq) + numBytes - 6);
+    msg->header.unitId = m_unitId.get();
+    msg->header.functionCode = static_cast<uint8_t>(FunctionCode::WRITE_COILS);
+    msg->startAddress = htons(startAddress.get());
+    msg->numBits = htons(num_bits);
+    msg->numBytes = numBytes;
+
+    std::size_t pos = 0;
+
+    for (auto it = begin; it != end; ++it) {
+        std::size_t byte_idx = pos / 8;
+        std::size_t bit_idx = pos % 8;
+
+        if (*it)
+            msg->coils[byte_idx] |= (1 << bit_idx);
+
+        ++pos;
+    }
+}
+
+
+template <typename Iterator>
+void Encoder::encodeWriteRegistersReq(const Address& startAddress, Iterator begin, Iterator end, std::vector<uint8_t>& target) const {
+    std::size_t numRegs = 0;
+    for (auto it = begin; it != end; ++it)
+        numRegs++;
+
+    target.resize(sizeof(WriteRegsReq) + 2*numRegs);
+
+    auto* msg = reinterpret_cast<WriteRegsReq*>(target.data());
+
+    msg->header.transactionId = htons(m_transactionId.get());
+    msg->header.protocolId = htons(MODBUS_PROTOCOL_ID);
+    msg->header.length = htons(sizeof(WriteRegsReq) + 2*numRegs - 6);
+    msg->header.unitId = m_unitId.get();
+    msg->header.functionCode = static_cast<uint8_t>(FunctionCode::WRITE_REGISTERS);
+    msg->startAddress = htons(startAddress.get());
+    msg->numRegs = htons(numRegs);
+    msg->numBytes = 2*numRegs;
+
+    std::size_t pos = 0;
+    for (auto it = begin; it != end; ++it)
+        msg->regs[pos++] = htons(*it);
 }
 
 
