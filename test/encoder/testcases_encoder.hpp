@@ -230,15 +230,41 @@ TEST_CASE("encode write coils req", "[encoder]") {
 
 
 TEST_CASE("encode write registers req", "[encoder]") {
+
     namespace mt = modbus::tcp;
 
     mt::Encoder encoder(mt::UnitId(0xab), mt::TransactionId(2));
-
     std::vector<uint16_t> regs{0x0102, 0x0304, 0x0506};
     std::vector<uint8_t> target{0x00, 0x02, 0x00, 0x00, 0x00, 0x0d, 0xab, 0x10, 0x10, 0x20, 0x00, 0x03, 0x06, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06};
     std::vector<uint8_t> encoded;
 
     encoder.encodeWriteRegistersReq(mt::Address(0x1020), regs.begin(), regs.end(), encoded);
+
+    REQUIRE(target == encoded);
+}
+
+
+TEST_CASE("encode write coils rsp", "[encoder]") {
+    namespace mt = modbus::tcp;
+
+    mt::Encoder encoder(mt::UnitId(0xab), mt::TransactionId(2));
+    std::vector<uint8_t> target{0x00, 0x02, 0x00, 0x00, 0x00, 0x06, 0xab, 0x0F, 0x10, 0x20, 0x00, 0x0A};
+    std::vector<uint8_t> encoded;
+
+    encoder.encodeWriteCoilsRsp(mt::Address(0x1020), mt::NumBits(10), encoded);
+
+    REQUIRE(target == encoded);
+}
+
+
+TEST_CASE("encode write registeres rsp", "[encoder]") {
+    namespace mt = modbus::tcp;
+
+    mt::Encoder encoder(mt::UnitId(0xab), mt::TransactionId(2));
+    std::vector<uint8_t> target{0x00, 0x02, 0x00, 0x00, 0x00, 0x06, 0xab, 0x10, 0x10, 0x20, 0x00, 0x0A};
+    std::vector<uint8_t> encoded;
+
+    encoder.encodeWriteRegistersRsp(mt::Address(0x1020), mt::NumRegs(10), encoded);
 
     REQUIRE(target == encoded);
 }

@@ -55,6 +55,12 @@ struct WriteRegsReq {
     uint16_t                        regs[];
 } __attribute__((packed));
 
+struct WriteValuesRsp {
+    Header                          header;
+    uint16_t                        startAddr;
+    uint16_t                        numValues;
+} __attribute__((packed));
+
 struct ExceptionRsp {
     Header                          header;
     uint8_t                         code;
