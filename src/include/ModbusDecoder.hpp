@@ -1,56 +1,140 @@
 #ifndef MODBUS_DECODER_HPP
 #define MODBUS_DECODER_HPP
 
-
-namespace modbus {
-namespace tcp {
-
 #include "ModbusConsts.hpp"
 #include "ModbusTypes.hpp"
 #include <arpa/inet.h>
 
-class Decoder {
+
+namespace modbus {
+namespace tcp {
+namespace decoder_views {
+
+
+class Header {
 public:
-    struct Header {
-        TransactionId           transactionId;
-        std::size_t             payloadSize;
-        UnitId                  unitId;
-        FunctionCode            functionCode;
-        bool                    isError;
-    };
+                                Header(const std::vector<uint8_t>& rx_buffer);
 
-    void                        decodeHeader(const std::vector<uint8_t>& rx_buffer, Header& header) const;
-
-    void                        decodeReadCoilsReq(const std::vector<uint8_t>& rx_buffer, Address& startAddress, NumBits& numCoils) const;
-    void                        decodeReadDiscreteInputsReq(const std::vector<uint8_t>& rx_buffer, Address& startAddress, NumBits& numCoils) const;
-    void                        decodeReadHoldingRegistersReq(const std::vector<uint8_t>& rx_buffer, Address& startAddress, NumRegs& numRegs) const;
-    void                        decodeReadInputRegistersReq(const std::vector<uint8_t>& rx_buffer, Address& startAddress, NumRegs& numRegs) const;
-    void                        decodeWriteSingleCoilReq(const std::vector<uint8_t>& rx_buffer, Address& address, bool& value) const;
-    void                        decodeWriteSingleRegisterReq(const std::vector<uint8_t>& rx_buffer, Address& address, uint16_t& value) const;
-
-    void                        decodeReadCoilsRsp(const std::vector<uint8_t>& rx_buffer, std::vector<bool>& coils) const;
-    void                        decodeReadDiscreteInputsRsp(const std::vector<uint8_t>& rx_buffer, std::vector<bool>& coils) const;
-    void                        decodeReadHoldingRegistersRsp(const std::vector<uint8_t>& rx_buffer, std::vector<uint16_t>& regs) const;
-    void                        decodeReadInputRegistersRsp(const std::vector<uint8_t>& rx_buffer, std::vector<uint16_t>& regs) const;
-    void                        decodeWriteSingleCoilRsp(const std::vector<uint8_t>& rx_buffer, Address& address, bool& value) const;
-    void                        decodeWriteSingleRegisterRsp(const std::vector<uint8_t>& rx_buffer, Address& address, uint16_t& value) const;
-
-    void                        decodeErrorResponse(const std::vector<uint8_t>& rx_buffer, ExceptionCode& code) const;
-
+    TransactionId               getTransactionId() const;
+    std::size_t                 getLength() const;
+    UnitId                      getUnitId() const;
+    FunctionCode                getFunctionCode() const;
+    bool                        isError() const;
 private:
-    void                        decodeReadBitsRsp(const std::vector<uint8_t>& rx_buffer, std::vector<bool>& coils) const;
-    void                        decodeReadRegsRsp(const std::vector<uint8_t>& rx_buffer, std::vector<uint16_t>& regs) const;
+    const modbus::tcp::Header  *m_header;
 };
 
 
-void Decoder::decodeHeader(const std::vector<uint8_t>& rx_buffer, Decoder::Header& header) const {
-    const auto* h = reinterpret_cast<const modbus::tcp::Header*>(rx_buffer.data());
+template <int dummy>
+class ReadBitsReq {
+public:
+                                ReadBitsReq(const std::vector<uint8_t>& rx_buffer);
+    Address                     getStartAddress() const;
+    NumBits                     getNumBits() const;
+private:
+    const ReadReq              *m_read_req;
+};
 
-    header.transactionId.set(ntohs(h->transactionId));
-    header.payloadSize = ntohs(h->length);
-    header.unitId.set(h->unitId);
 
-    switch (h->functionCode & 0x7F) {
+template <int dummy>
+class ReadRegistersReq {
+public:
+                                ReadRegistersReq(const std::vector<uint8_t>& rx_buffer);
+    Address                     getStartAddress() const;
+    NumRegs                     getNumRegs() const;
+private:
+    const ReadReq              *m_read_req;
+};
+
+
+template <int dummy>
+class ReadBitsRsp {
+public:
+                                ReadBitsRsp(const std::vector<uint8_t>& rx_buffer);
+    uint8_t                     getNumBits() const;
+    bool                        getBit(std::size_t pos);
+private:
+    const modbus::tcp::ReadCoilsRsp *m_read_rsp;
+};
+
+
+template <int dummy>
+class ReadRegistersRsp {
+public:
+                                ReadRegistersRsp(const std::vector<uint8_t>& rx_buffer);
+    uint16_t                    getNumRegs() const;
+    uint16_t                    getRegister(uint16_t idx) const;
+private:
+    const modbus::tcp::ReadRegsRsp* m_read_rsp;
+};
+
+
+template <int dummy>
+class WriteSingleCoil {
+public:
+                                WriteSingleCoil(const std::vector<uint8_t>& rx_buffer);
+    Address                     getAddress() const;
+    bool                        getValue() const;
+private:
+    const WriteSingleValue     *m_write_req;
+};
+
+
+template <int dummy>
+class WriteSingleRegister {
+public:
+                                WriteSingleRegister(const std::vector<uint8_t>& rx_buffer);
+    Address                     getAddress() const;
+    uint16_t                    getValue() const;
+private:
+    const WriteSingleValue     *m_write_req;
+};
+
+
+using ReadCoilsReq = ReadBitsReq<0>;
+using ReadDiscreteInputsReq = ReadBitsReq<1>;
+using ReadHoldingRegistersReq = ReadRegistersReq<0>;
+using ReadInputRegistersReq = ReadRegistersReq<1>;
+using ReadCoilsRsp = ReadBitsRsp<0>;
+using ReadDiscreteInputsRsp = ReadBitsRsp<1>;
+using ReadHoldingRegistersRsp = ReadRegistersRsp<0>;
+using ReadInputRegistersRsp = ReadRegistersRsp<1>;
+using WriteSingleCoilReq = WriteSingleCoil<0>;
+using WriteSingleCoilRsp = WriteSingleCoil<1>;
+using WriteSingleRegisterReq = WriteSingleRegister<0>;
+using WriteSingleRegisterRsp = WriteSingleRegister<1>;
+
+class ErrorResponse {
+public:
+                                ErrorResponse(const std::vector<uint8_t>& rx_buffer);
+    ExceptionCode               getCode() const;
+private:
+    const modbus::tcp::ExceptionRsp* m_response;
+};
+
+
+Header::Header(const std::vector<uint8_t>& rx_buffer) :
+    m_header(reinterpret_cast<const modbus::tcp::Header*>(rx_buffer.data()))
+{}
+
+
+TransactionId Header::getTransactionId() const {
+    return TransactionId(ntohs(m_header->transactionId));
+}
+
+
+std::size_t Header::getLength() const {
+    return ntohs(m_header->length);
+}
+
+
+UnitId Header::getUnitId() const {
+    return UnitId(m_header->unitId);
+}
+
+
+FunctionCode Header::getFunctionCode() const {
+    switch (m_header->functionCode & 0x7F) {
         case static_cast<uint8_t>(FunctionCode::READ_COILS):
         case static_cast<uint8_t>(FunctionCode::READ_DISCRETE_INPUTS):
         case static_cast<uint8_t>(FunctionCode::READ_HOLDING_REGISTERS):
@@ -59,120 +143,136 @@ void Decoder::decodeHeader(const std::vector<uint8_t>& rx_buffer, Decoder::Heade
         case static_cast<uint8_t>(FunctionCode::WRITE_REGISTER):
         case static_cast<uint8_t>(FunctionCode::WRITE_COILS):
         case static_cast<uint8_t>(FunctionCode::WRITE_REGISTERS):
-            header.functionCode = static_cast<FunctionCode>(h->functionCode & 0x7F);
-            break;
+            return static_cast<FunctionCode>(m_header->functionCode & 0x7F);
 
         default:
             throw std::runtime_error("Invalid function code received");
     }
-
-    header.isError = h->functionCode & 0x80;
 }
 
 
-void Decoder::decodeReadCoilsReq(const std::vector<uint8_t>& rx_buffer, Address& startAddress, NumBits& numCoils) const {
-    const auto* msg = reinterpret_cast<const modbus::tcp::ReadReq*>(rx_buffer.data());
-    startAddress.set(ntohs(msg->startAddress));
-    numCoils.set(ntohs(msg->numEntries));
+bool Header::isError() const {
+    return m_header->functionCode & 0x80;
 }
 
 
-void Decoder::decodeReadDiscreteInputsReq(const std::vector<uint8_t>& rx_buffer, Address& startAddress, NumBits& numCoils) const {
-    const auto* msg = reinterpret_cast<const modbus::tcp::ReadReq*>(rx_buffer.data());
-    startAddress.set(ntohs(msg->startAddress));
-    numCoils.set(ntohs(msg->numEntries));
+template <int dummy>
+ReadBitsReq<dummy>::ReadBitsReq(const std::vector<uint8_t>& rx_buffer) :
+    m_read_req(reinterpret_cast<const ReadReq*>(rx_buffer.data()))
+{}
+
+
+template <int dummy>
+Address ReadBitsReq<dummy>::getStartAddress() const {
+    return Address(ntohs(m_read_req->startAddress));
 }
 
 
-void Decoder::decodeReadHoldingRegistersReq(const std::vector<uint8_t>& rx_buffer, Address& startAddress, NumRegs& numRegs) const {
-    const auto* msg = reinterpret_cast<const modbus::tcp::ReadReq*>(rx_buffer.data());
-    startAddress.set(ntohs(msg->startAddress));
-    numRegs.set(ntohs(msg->numEntries));
+template <int dummy>
+NumBits ReadBitsReq<dummy>::getNumBits() const {
+    return NumBits(ntohs(m_read_req->numEntries));
 }
 
 
-void Decoder::decodeReadInputRegistersReq(const std::vector<uint8_t>& rx_buffer, Address& startAddress, NumRegs& numRegs) const {
-    const auto* msg = reinterpret_cast<const modbus::tcp::ReadReq*>(rx_buffer.data());
-    startAddress.set(ntohs(msg->startAddress));
-    numRegs.set(ntohs(msg->numEntries));
+template <int dummy>
+ReadRegistersReq<dummy>::ReadRegistersReq(const std::vector<uint8_t>& rx_buffer) :
+    m_read_req(reinterpret_cast<const ReadReq*>(rx_buffer.data()))
+{}
+
+
+template <int dummy>
+Address ReadRegistersReq<dummy>::getStartAddress() const {
+    return Address(ntohs(m_read_req->startAddress));
 }
 
 
-void Decoder::decodeWriteSingleCoilReq(const std::vector<uint8_t>& rx_buffer, Address& address, bool& value) const {
-    const auto* msg = reinterpret_cast<const modbus::tcp::WriteSingleValue*>(rx_buffer.data());
-    address.set(ntohs(msg->address));
-    value = msg->value;
+template <int dummy>
+NumRegs ReadRegistersReq<dummy>::getNumRegs() const {
+    return NumRegs(ntohs(m_read_req->numEntries));
 }
 
 
-void Decoder::decodeWriteSingleRegisterReq(const std::vector<uint8_t>& rx_buffer, Address& address, uint16_t& value) const {
-    const auto* msg = reinterpret_cast<const modbus::tcp::WriteSingleValue*>(rx_buffer.data());
-    address.set(ntohs(msg->address));
-    value = ntohs(msg->value);
+template <int dummy>
+WriteSingleCoil<dummy>::WriteSingleCoil(const std::vector<uint8_t>& rx_buffer) :
+    m_write_req(reinterpret_cast<const WriteSingleValue*>(rx_buffer.data()))
+{}
+
+
+template <int dummy>
+Address WriteSingleCoil<dummy>::getAddress() const {
+    return Address(ntohs(m_write_req->address));
+}
+
+template <int dummy>
+bool WriteSingleCoil<dummy>::getValue() const {
+    return m_write_req->value != 0;
 }
 
 
-void Decoder::decodeReadCoilsRsp(const std::vector<uint8_t>& rx_buffer, std::vector<bool>& coils) const {
-    decodeReadBitsRsp(rx_buffer, coils);
+template <int dummy>
+WriteSingleRegister<dummy>::WriteSingleRegister(const std::vector<uint8_t>& rx_buffer) :
+    m_write_req(reinterpret_cast<const WriteSingleValue*>(rx_buffer.data()))
+{}
+
+
+template <int dummy>
+Address WriteSingleRegister<dummy>::getAddress() const {
+    return Address(ntohs(m_write_req->address));
 }
 
 
-void Decoder::decodeReadDiscreteInputsRsp(const std::vector<uint8_t>& rx_buffer, std::vector<bool>& coils) const {
-    decodeReadBitsRsp(rx_buffer, coils);
+template <int dummy>
+uint16_t WriteSingleRegister<dummy>::getValue() const {
+    return ntohs(m_write_req->value);
 }
 
 
-void Decoder::decodeReadBitsRsp(const std::vector<uint8_t>& rx_buffer, std::vector<bool>& coils) const {
-    const auto* msg = reinterpret_cast<const modbus::tcp::ReadCoilsRsp*>(rx_buffer.data());
+template <int dummy>
+ReadBitsRsp<dummy>::ReadBitsRsp(const std::vector<uint8_t>& rx_buffer) :
+    m_read_rsp(reinterpret_cast<const modbus::tcp::ReadCoilsRsp*>(rx_buffer.data()))
+{}
 
-    coils.resize(msg->numBytes*8);
-    coils.clear();
 
-    for (std::size_t i = 0; i < msg->numBytes; ++i)
-        for (std::size_t j = 0; j < 8; ++j)
-            coils.push_back(msg->coils[i] & (1 << j));
+template <int dummy>
+uint8_t ReadBitsRsp<dummy>::getNumBits() const {
+    return m_read_rsp->numBytes * 8;
 }
 
 
-void Decoder::decodeReadHoldingRegistersRsp(const std::vector<uint8_t>& rx_buffer, std::vector<uint16_t>& regs) const {
-    decodeReadRegsRsp(rx_buffer, regs);
+template <int dummy>
+bool ReadBitsRsp<dummy>::getBit(std::size_t pos) {
+    std::size_t idx = pos / 8;
+    std::size_t mask = 1 << (pos % 8);
+
+    return m_read_rsp->coils[idx] & mask;
 }
 
 
-void Decoder::decodeReadInputRegistersRsp(const std::vector<uint8_t>& rx_buffer, std::vector<uint16_t>& regs) const {
-    decodeReadRegsRsp(rx_buffer, regs);
+template <int dummy>
+ReadRegistersRsp<dummy>::ReadRegistersRsp(const std::vector<uint8_t>& rx_buffer) :
+    m_read_rsp(reinterpret_cast<const modbus::tcp::ReadRegsRsp*>(rx_buffer.data()))
+{}
+
+
+template <int dummy>
+uint16_t ReadRegistersRsp<dummy>::getNumRegs() const {
+    return m_read_rsp->numBytes / 2;
 }
 
 
-void Decoder::decodeReadRegsRsp(const std::vector<uint8_t>& rx_buffer, std::vector<uint16_t>& regs) const {
-    const auto* msg = reinterpret_cast<const modbus::tcp::ReadRegsRsp*>(rx_buffer.data());
-
-    regs.resize(msg->numBytes/2);
-    regs.clear();
-
-    for (std::size_t i = 0; i < msg->numBytes/2; ++i)
-        regs.push_back(ntohs(msg->regs[i]));
+template <int dummy>
+uint16_t ReadRegistersRsp<dummy>::getRegister(uint16_t idx) const {
+    return ntohs(m_read_rsp->regs[idx]);
 }
 
 
-void Decoder::decodeWriteSingleCoilRsp(const std::vector<uint8_t>& rx_buffer, Address& address, bool& value) const {
-    const auto* msg = reinterpret_cast<const modbus::tcp::WriteSingleValue*>(rx_buffer.data());
-    address.set(ntohs(msg->address));
-    value = msg->value;
-}
+ErrorResponse::ErrorResponse(const std::vector<uint8_t>& rx_buffer) :
+    m_response(reinterpret_cast<const ExceptionRsp*>(rx_buffer.data()))
+{}
 
 
-void Decoder::decodeWriteSingleRegisterRsp(const std::vector<uint8_t>& rx_buffer, Address& address, uint16_t& value) const {
-    const auto* msg = reinterpret_cast<const modbus::tcp::WriteSingleValue*>(rx_buffer.data());
-    address.set(ntohs(msg->address));
-    value = ntohs(msg->value);
-}
-
-
-void Decoder::decodeErrorResponse(const std::vector<uint8_t>& rx_buffer, ExceptionCode& code) const {
-    const auto* msg = reinterpret_cast<const modbus::tcp::ExceptionRsp*>(rx_buffer.data());
-
-    switch (msg->code) {
+ExceptionCode ErrorResponse::getCode() const {
+    switch (m_response->code) {
         case static_cast<uint8_t>(ExceptionCode::ILLEGAL_FUNCTION):
         case static_cast<uint8_t>(ExceptionCode::ILLEGAL_DATA_ADDRESS):
         case static_cast<uint8_t>(ExceptionCode::ILLEGAL_DATA_VALUE):
@@ -182,14 +282,14 @@ void Decoder::decodeErrorResponse(const std::vector<uint8_t>& rx_buffer, Excepti
         case static_cast<uint8_t>(ExceptionCode::MEMORY_PARITY_ERROR):
         case static_cast<uint8_t>(ExceptionCode::GATEWAY_PATH_UNAVAILABLE):
         case static_cast<uint8_t>(ExceptionCode::GATEWAY_TARGET_DEVICE_FAILED_TO_RESPOND):
-            code = static_cast<ExceptionCode>(msg->code);
-            break;
+            return static_cast<ExceptionCode>(m_response->code);
 
         default:
-            throw std::runtime_error("Invalid exception code");
+            throw std::runtime_error("Invalid exception error response code");
     }
 }
 
+} // namespace decoder
 } // namespace tcp
 } // namespace modbus
 

@@ -10,7 +10,7 @@ struct error : public std::runtime_error {
 
 
 struct unit_id_mismatch : public error {
-    unit_id_mismatch(UnitId& /*received*/, UnitId& /*myid*/) : error("unit id mismatch") {}
+    unit_id_mismatch(const UnitId& /*received*/, const UnitId& /*myid*/) : error("unit id mismatch") {}
 };
 
 
@@ -51,37 +51,34 @@ ServerDevice::~ServerDevice() {
 
 
 void ServerDevice::handleMessage(const std::vector<uint8_t>& rx_buffer, std::vector<uint8_t>& tx_buffer) {
-    modbus::tcp::Decoder decoder;
-    modbus::tcp::Decoder::Header header;
+    modbus::tcp::decoder_views::Header header(rx_buffer);
 
-    decoder.decodeHeader(rx_buffer, header);
+    if ((m_unitId.get() != 0) && (header.getUnitId() != m_unitId))
+        throw unit_id_mismatch(m_unitId, header.getUnitId());
 
-    if ((m_unitId.get() != 0) && (header.unitId.get() != m_unitId.get()))
-        throw unit_id_mismatch(m_unitId, header.unitId);
-
-    switch (header.functionCode) {
+    switch (header.getFunctionCode()) {
         case FunctionCode::READ_COILS:
-            handleReadCoilsReq(header.transactionId, rx_buffer, tx_buffer);
+            handleReadCoilsReq(header.getTransactionId(), rx_buffer, tx_buffer);
             break;
 
         case FunctionCode::READ_DISCRETE_INPUTS:
-            handleReadDiscreteInputsReq(header.transactionId, rx_buffer, tx_buffer);
+            handleReadDiscreteInputsReq(header.getTransactionId(), rx_buffer, tx_buffer);
             break;
 
         case FunctionCode::READ_HOLDING_REGISTERS:
-            handleReadHoldingRegistersReq(header.transactionId, rx_buffer, tx_buffer);
+            handleReadHoldingRegistersReq(header.getTransactionId(), rx_buffer, tx_buffer);
             break;
 
         case FunctionCode::READ_INPUT_REGISTERS:
-            handleReadInputRegistersReq(header.transactionId, rx_buffer, tx_buffer);
+            handleReadInputRegistersReq(header.getTransactionId(), rx_buffer, tx_buffer);
             break;
 
         case FunctionCode::WRITE_COIL:
-            handleWriteSingleCoilReq(header.transactionId, rx_buffer, tx_buffer);
+            handleWriteSingleCoilReq(header.getTransactionId(), rx_buffer, tx_buffer);
             break;
 
         case FunctionCode::WRITE_REGISTER:
-            handleWriteSingleRegisterReq(header.transactionId, rx_buffer, tx_buffer);
+            handleWriteSingleRegisterReq(header.getTransactionId(), rx_buffer, tx_buffer);
             break;
 
         case FunctionCode::WRITE_COILS:
@@ -101,15 +98,15 @@ void ServerDevice::handleMessage(const std::vector<uint8_t>& rx_buffer, std::vec
 
 
 void ServerDevice::handleReadCoilsReq(const TransactionId& transactionId, const std::vector<uint8_t>& rx_buffer, std::vector<uint8_t>& tx_buffer) const {
-    modbus::tcp::Decoder decoder;
-    modbus::tcp::Address address;
-    modbus::tcp::NumBits numCoils;
-    decoder.decodeReadCoilsReq(rx_buffer, address, numCoils);
+    modbus::tcp::decoder_views::ReadCoilsReq view(rx_buffer);
 
     std::vector<bool> coils;
-    coils.reserve(numCoils.get());
+    coils.reserve(view.getNumBits().get());
 
-    for (std::size_t i = address.get(); i < address.get() + numCoils.get(); ++i)
+    const std::size_t start = view.getStartAddress().get();
+    const std::size_t end = start + view.getNumBits().get();
+
+    for (std::size_t i = start; i < end; ++i)
         coils.push_back(getCoil(modbus::tcp::Address(i)));
 
     modbus::tcp::Encoder encoder(m_unitId, transactionId);
@@ -118,15 +115,15 @@ void ServerDevice::handleReadCoilsReq(const TransactionId& transactionId, const 
 
 
 void ServerDevice::handleReadDiscreteInputsReq(const TransactionId& transactionId, const std::vector<uint8_t>& rx_buffer, std::vector<uint8_t>& tx_buffer) const {
-    modbus::tcp::Decoder decoder;
-    modbus::tcp::Address address;
-    modbus::tcp::NumBits numInputs;
-    decoder.decodeReadDiscreteInputsReq(rx_buffer, address, numInputs);
+    modbus::tcp::decoder_views::ReadDiscreteInputsReq view(rx_buffer);;
 
     std::vector<bool> inputs;
-    inputs.reserve(numInputs.get());
+    inputs.reserve(view.getNumBits().get());
 
-    for (std::size_t i = address.get(); i < address.get() + numInputs.get(); ++i)
+    const std::size_t start = view.getStartAddress().get();
+    const std::size_t end = start + view.getNumBits().get();
+
+    for (std::size_t i = start; i < end; ++i)
         inputs.push_back(getDiscreteInput(modbus::tcp::Address(i)));
 
     modbus::tcp::Encoder encoder(m_unitId, transactionId);
@@ -135,15 +132,15 @@ void ServerDevice::handleReadDiscreteInputsReq(const TransactionId& transactionI
 
 
 void ServerDevice::handleReadHoldingRegistersReq(const TransactionId& transactionId, const std::vector<uint8_t>& rx_buffer, std::vector<uint8_t>& tx_buffer) const {
-    modbus::tcp::Decoder decoder;
-    modbus::tcp::Address address;
-    modbus::tcp::NumRegs numRegs;
-    decoder.decodeReadHoldingRegistersReq(rx_buffer, address, numRegs);
+    modbus::tcp::decoder_views::ReadHoldingRegistersReq view(rx_buffer);
 
     std::vector<uint16_t> regs;
-    regs.reserve(numRegs.get());
+    regs.reserve(view.getNumRegs().get());
 
-    for (std::size_t i = address.get(); i < address.get() + numRegs.get(); ++i)
+    const std::size_t start = view.getStartAddress().get();
+    const std::size_t end = start + view.getNumRegs().get();
+
+    for (std::size_t i = start; i < end; ++i)
         regs.push_back(getHoldingRegister(modbus::tcp::Address(i)));
 
     modbus::tcp::Encoder encoder(m_unitId, transactionId);
@@ -152,15 +149,15 @@ void ServerDevice::handleReadHoldingRegistersReq(const TransactionId& transactio
 
 
 void ServerDevice::handleReadInputRegistersReq(const TransactionId& transactionId, const std::vector<uint8_t>& rx_buffer, std::vector<uint8_t>& tx_buffer) const {
-    modbus::tcp::Decoder decoder;
-    modbus::tcp::Address address;
-    modbus::tcp::NumRegs numRegs;
-    decoder.decodeReadHoldingRegistersReq(rx_buffer, address, numRegs);
+    modbus::tcp::decoder_views::ReadInputRegistersReq view(rx_buffer);
 
     std::vector<uint16_t> regs;
-    regs.reserve(numRegs.get());
+    regs.reserve(view.getNumRegs().get());
 
-    for (std::size_t i = address.get(); i < address.get() + numRegs.get(); ++i)
+    const std::size_t start = view.getStartAddress().get();
+    const std::size_t end = start + view.getNumRegs().get();
+
+    for (std::size_t i = start; i < end; ++i)
         regs.push_back(getInputRegister(modbus::tcp::Address(i)));
 
     modbus::tcp::Encoder encoder(m_unitId, transactionId);
@@ -169,28 +166,22 @@ void ServerDevice::handleReadInputRegistersReq(const TransactionId& transactionI
 
 
 void ServerDevice::handleWriteSingleCoilReq(const TransactionId& transactionId, const std::vector<uint8_t>& rx_buffer, std::vector<uint8_t>& tx_buffer) {
-    modbus::tcp::Decoder decoder;
-    modbus::tcp::Address address;
-    bool value = false;
-    decoder.decodeWriteSingleCoilReq(rx_buffer, address, value);
+    modbus::tcp::decoder_views::WriteSingleCoilReq view(rx_buffer);
 
-    setCoil(address, value);
+    setCoil(view.getAddress(), view.getValue());
 
     modbus::tcp::Encoder encoder(m_unitId, transactionId);
-    encoder.encodeWriteSingleCoilRsp(address, value, tx_buffer);
+    encoder.encodeWriteSingleCoilRsp(view.getAddress(), view.getValue(), tx_buffer);
 }
 
 
 void ServerDevice::handleWriteSingleRegisterReq(const TransactionId& transactionId, const std::vector<uint8_t>& rx_buffer, std::vector<uint8_t>& tx_buffer) {
-    modbus::tcp::Decoder decoder;
-    modbus::tcp::Address address;
-    uint16_t value = 0;
-    decoder.decodeWriteSingleRegisterReq(rx_buffer, address, value);
+    modbus::tcp::decoder_views::WriteSingleRegisterReq view(rx_buffer);
 
-    setRegister(address, value);
+    setRegister(view.getAddress(), view.getValue());
 
     modbus::tcp::Encoder encoder(m_unitId, transactionId);
-    encoder.encodeWriteSingleRegisterRsp(address, value, tx_buffer);
+    encoder.encodeWriteSingleRegisterRsp(view.getAddress(), view.getValue(), tx_buffer);
 }
 
 
