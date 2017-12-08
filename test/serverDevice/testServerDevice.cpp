@@ -25,7 +25,8 @@ protected:
     virtual void            setRegister(const modbus::tcp::Address& address, uint16_t value) {}
 };
 
-TEST_CASE("", "[server device]") {
+
+TEST_CASE("handle read coils", "[server device]") {
     namespace mt = modbus::tcp;
 
     std::vector<uint8_t> rsp;
