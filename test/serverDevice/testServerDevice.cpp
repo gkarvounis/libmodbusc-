@@ -2,8 +2,6 @@
 
 #include "Catch.hpp"
 
-#include "ModbusConsts.hpp"
-#include "ModbusTypes.hpp"
 #include "ModbusEncoder.hpp"
 #include "ModbusDecoder.hpp"
 #include "ModbusServerDevice.hpp"
