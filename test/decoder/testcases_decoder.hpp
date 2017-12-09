@@ -195,6 +195,61 @@ TEST_CASE("decode write single register rsp", "[decoder]") {
 }
 
 
+TEST_CASE("decode write coils req", "[decoder]") {
+    namespace mt = modbus::tcp;
+
+    std::vector<uint8_t> msg{0x00, 0x02, 0x00, 0x00, 0x00, 0x09, 0xab, 0x0f, 0x10, 0x20, 0x00, 0x0A, 0x02, 0b01010101, 0b00000011};
+    mt::decoder_views::WriteCoilsReq view(msg);
+
+    REQUIRE(view.getStartAddress() == mt::Address(0x1020));
+    REQUIRE(view.getNumBits() == mt::NumBits(10));
+
+    std::vector<bool> coils{
+        view.getCoil(0), view.getCoil(1), view.getCoil(2), view.getCoil(3),
+        view.getCoil(4), view.getCoil(5), view.getCoil(6), view.getCoil(7),
+        view.getCoil(8), view.getCoil(9)
+    };
+
+    REQUIRE(coils == (std::vector<bool>{1,0,1,0,1,0,1,0,1,1}));
+}
+
+
+TEST_CASE("decode write coils rsp", "[decoder]") {
+    namespace mt = modbus::tcp;
+
+    std::vector<uint8_t> msg{0x00, 0x02, 0x00, 0x00, 0x00, 0x06, 0xab, 0x0F, 0x10, 0x20, 0x00, 0x0A};
+    mt::decoder_views::WriteCoilsRsp view(msg);
+
+    REQUIRE(view.getStartAddress() == mt::Address(0x1020));
+    REQUIRE(view.getNumBits() == mt::NumBits(10));
+}
+
+
+TEST_CASE("decode write registers req", "[decoder]") {
+    namespace mt = modbus::tcp;
+
+    std::vector<uint8_t> msg{0x00, 0x02, 0x00, 0x00, 0x00, 0x0d, 0xab, 0x10, 0x10, 0x20, 0x00, 0x03, 0x06, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06};
+    mt::decoder_views::WriteRegistersReq view(msg);
+
+    REQUIRE(view.getStartAddress() == mt::Address(0x1020));
+    REQUIRE(view.getNumRegs() == mt::NumRegs(3));
+
+    std::vector<uint16_t> regs{view.getRegister(0), view.getRegister(1), view.getRegister(2)};
+    REQUIRE(regs == (std::vector<uint16_t>{0x0102, 0x0304, 0x0506}));
+}
+
+
+TEST_CASE("decode write registers rsp", "[decoder]") {
+    namespace mt = modbus::tcp;
+
+    std::vector<uint8_t> msg{0x00, 0x02, 0x00, 0x00, 0x00, 0x06, 0xab, 0x10, 0x10, 0x20, 0x00, 0x0A};
+    mt::decoder_views::WriteRegistersRsp view(msg);
+
+    REQUIRE(view.getStartAddress() == mt::Address(0x1020));
+    REQUIRE(view.getNumRegs() == mt::NumRegs(10));
+}
+
+
 TEST_CASE("decode error response", "[decoder]") {
     namespace mt = modbus::tcp;
 

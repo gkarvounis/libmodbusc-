@@ -10,17 +10,20 @@ class TestServerDevice : public modbus::tcp::ServerDevice {
 public:
                             TestServerDevice(const modbus::tcp::UnitId& id) : modbus::tcp::ServerDevice(id) {}
 protected:
-    virtual bool            getCoil(const modbus::tcp::Address& address) const {
+    virtual bool            getCoil(const modbus::tcp::Address& address) const override {
         static const std::vector<bool> coils{1,0,1,0,0,0,0,0};
         return coils.at(address.get()-0x1020);
     }
 
-    virtual bool            getDiscreteInput(const modbus::tcp::Address& address) const {}
-    virtual uint16_t        getHoldingRegister(const modbus::tcp::Address& addr) const {}
-    virtual uint16_t        getInputRegister(const modbus::tcp::Address& addr) const {};
+    virtual bool            getDiscreteInput(const modbus::tcp::Address& address) const override {}
+    virtual uint16_t        getHoldingRegister(const modbus::tcp::Address& addr) const override {}
+    virtual uint16_t        getInputRegister(const modbus::tcp::Address& addr) const override {};
 
-    virtual void            setCoil(const modbus::tcp::Address& address, bool value) {}
-    virtual void            setRegister(const modbus::tcp::Address& address, uint16_t value) {}
+    virtual void            setCoil(const modbus::tcp::Address& address, bool value) override {}
+    virtual void            setRegister(const modbus::tcp::Address& address, uint16_t value) override {}
+
+    virtual void            setCoils(const modbus::tcp::Address& startAddress, const std::vector<bool>& coils) override {}
+    virtual void            setRegisters(const modbus::tcp::Address& startAddress, const std::vector<uint16_t>& regs) override {}
 };
 
 

@@ -47,7 +47,7 @@ struct WriteCoilsReq {
     uint8_t                         coils[];
 } __attribute__((packed));
 
-struct WriteRegsReq {
+struct WriteRegistersReq {
     Header                          header;
     uint16_t                        startAddress;
     uint16_t                        numRegs;
@@ -57,7 +57,7 @@ struct WriteRegsReq {
 
 struct WriteValuesRsp {
     Header                          header;
-    uint16_t                        startAddr;
+    uint16_t                        startAddress;
     uint16_t                        numValues;
 } __attribute__((packed));
 

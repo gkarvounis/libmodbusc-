@@ -30,6 +30,9 @@ protected:
     virtual void            setCoil(const Address& address, bool value) = 0;
     virtual void            setRegister(const Address& address, uint16_t value) = 0;
 
+    virtual void            setCoils(const Address& startAddress, const std::vector<bool>& coils) = 0;
+    virtual void            setRegisters(const Address& startAddress, const std::vector<uint16_t>& regs) = 0;
+
 private:
     inline void             handleReadCoilsReq              (const TransactionId& transactionId, const std::vector<uint8_t>& rx_buffer, std::vector<uint8_t>& tx_buffer) const;
     inline void             handleReadDiscreteInputsReq     (const TransactionId& transactionId, const std::vector<uint8_t>& rx_buffer, std::vector<uint8_t>& tx_buffer) const;
@@ -37,6 +40,8 @@ private:
     inline void             handleReadInputRegistersReq     (const TransactionId& transactionId, const std::vector<uint8_t>& rx_buffer, std::vector<uint8_t>& tx_buffer) const;
     inline void             handleWriteSingleCoilReq        (const TransactionId& transactionId, const std::vector<uint8_t>& rx_buffer, std::vector<uint8_t>& tx_buffer);
     inline void             handleWriteSingleRegisterReq    (const TransactionId& transactionId, const std::vector<uint8_t>& rx_buffer, std::vector<uint8_t>& tx_buffer);
+    inline void             handleWriteCoilsReq             (const TransactionId& transactionId, const std::vector<uint8_t>& rx_buffer, std::vector<uint8_t>& tx_buffer);
+    inline void             handleWriteRegistersReq         (const TransactionId& transactionId, const std::vector<uint8_t>& rx_buffer, std::vector<uint8_t>& tx_buffer);
 
     UnitId                  m_unitId;
 };
@@ -82,13 +87,11 @@ void ServerDevice::handleMessage(const std::vector<uint8_t>& rx_buffer, std::vec
             break;
 
         case FunctionCode::WRITE_COILS:
-            //handleWriteCoilsReq(rx_buffer, tx_buffer);
-            throw std::logic_error("Function code not supported");
+            handleWriteCoilsReq(header.getTransactionId(), rx_buffer, tx_buffer);
             break;
 
         case FunctionCode::WRITE_REGISTERS:
-            //handleWriteRegistersReq(rx_buffer, tx_buffer);
-            throw std::logic_error("Function code not supported");
+            handleWriteRegistersReq(header.getTransactionId(), rx_buffer, tx_buffer);
             break;
 
         default:
@@ -182,6 +185,25 @@ void ServerDevice::handleWriteSingleRegisterReq(const TransactionId& transaction
 
     modbus::tcp::Encoder encoder(m_unitId, transactionId);
     encoder.encodeWriteSingleRegisterRsp(view.getAddress(), view.getValue(), tx_buffer);
+}
+
+
+void ServerDevice::handleWriteCoilsReq(const TransactionId& transactionId, const std::vector<uint8_t>& rx_buffer, std::vector<uint8_t>& tx_buffer) {
+    modbus::tcp::decoder_views::WriteCoilsReq view(rx_buffer);
+
+    std::vector<bool> coils;
+    for (std::size_t i = 0; i < view.getNumBits().get(); ++i)
+        coils.push_back(view.getCoil(i));
+
+    setCoils(view.getStartAddress(), coils);
+
+    modbus::tcp::Encoder encoder(m_unitId, transactionId);
+    encoder.encodeWriteCoilsRsp(view.getStartAddress(), view.getNumBits(), tx_buffer);
+}
+
+
+void ServerDevice::handleWriteRegistersReq(const TransactionId& transactionId, const std::vector<uint8_t>& rx_buffer, std::vector<uint8_t>& tx_buffer) {
+
 }
 
 

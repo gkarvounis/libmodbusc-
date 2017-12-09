@@ -95,14 +95,62 @@ using ReadCoilsReq = ReadBitsReq<0>;
 using ReadDiscreteInputsReq = ReadBitsReq<1>;
 using ReadHoldingRegistersReq = ReadRegistersReq<0>;
 using ReadInputRegistersReq = ReadRegistersReq<1>;
+using WriteSingleCoilReq = WriteSingleCoil<0>;
+using WriteSingleRegisterReq = WriteSingleRegister<0>;
+
 using ReadCoilsRsp = ReadBitsRsp<0>;
 using ReadDiscreteInputsRsp = ReadBitsRsp<1>;
 using ReadHoldingRegistersRsp = ReadRegistersRsp<0>;
 using ReadInputRegistersRsp = ReadRegistersRsp<1>;
-using WriteSingleCoilReq = WriteSingleCoil<0>;
 using WriteSingleCoilRsp = WriteSingleCoil<1>;
-using WriteSingleRegisterReq = WriteSingleRegister<0>;
 using WriteSingleRegisterRsp = WriteSingleRegister<1>;
+
+
+class WriteCoilsReq {
+public:
+                                WriteCoilsReq(const std::vector<uint8_t>& rx_buffer);
+
+    modbus::tcp::Address        getStartAddress() const;
+    modbus::tcp::NumBits        getNumBits() const;
+    bool                        getCoil(uint16_t idx) const;
+private:
+    const modbus::tcp::WriteCoilsReq* m_req;
+};
+
+
+class WriteCoilsRsp {
+public:
+                            WriteCoilsRsp(const std::vector<uint8_t>& rx_buffer);
+    modbus::tcp::Address    getStartAddress() const;
+    modbus::tcp::NumBits    getNumBits() const;
+
+private:
+    const modbus::tcp::WriteValuesRsp* m_rsp;
+};
+
+
+class WriteRegistersReq {
+public:
+                            WriteRegistersReq(const std::vector<uint8_t>& rx_buffer);
+    modbus::tcp::Address    getStartAddress() const;
+    modbus::tcp::NumRegs    getNumRegs() const;
+    uint16_t                getRegister(uint16_t idx) const;
+
+private:
+    const modbus::tcp::WriteRegistersReq* m_req;
+};
+
+
+class WriteRegistersRsp {
+public:
+                            WriteRegistersRsp(const std::vector<uint8_t>& rx_buffer);
+    modbus::tcp::Address    getStartAddress() const;
+    modbus::tcp::NumRegs    getNumRegs() const;
+
+private:
+    const modbus::tcp::WriteValuesRsp* m_rsp;
+};
+
 
 class ErrorResponse {
 public:
@@ -264,6 +312,84 @@ template <int dummy>
 uint16_t ReadRegistersRsp<dummy>::getRegister(uint16_t idx) const {
     return ntohs(m_read_rsp->regs[idx]);
 }
+
+
+WriteCoilsReq::WriteCoilsReq(const std::vector<uint8_t>& rx_buffer) :
+    m_req(reinterpret_cast<const modbus::tcp::WriteCoilsReq*>(rx_buffer.data()))
+{}
+
+
+modbus::tcp::Address WriteCoilsReq::getStartAddress() const {
+    return modbus::tcp::Address(ntohs(m_req->startAddress));
+}
+
+
+modbus::tcp::NumBits WriteCoilsReq::getNumBits() const {
+    return modbus::tcp::NumBits(ntohs(m_req->numBits));
+
+}
+
+
+bool WriteCoilsReq::getCoil(uint16_t idx) const {
+    uint16_t pos = idx / 8;
+    uint16_t mask = 1 << (idx%8);
+
+    return m_req->coils[pos] & mask;
+}
+
+
+WriteCoilsRsp::WriteCoilsRsp(const std::vector<uint8_t>& rx_buffer) :
+    m_rsp(reinterpret_cast<const modbus::tcp::WriteValuesRsp*>(rx_buffer.data()))
+{}
+
+
+modbus::tcp::Address WriteCoilsRsp::getStartAddress() const {
+    return modbus::tcp::Address(ntohs(m_rsp->startAddress));
+}
+
+
+modbus::tcp::NumBits WriteCoilsRsp::getNumBits() const {
+    return modbus::tcp::NumBits(ntohs(m_rsp->numValues));
+}
+
+
+WriteRegistersReq::WriteRegistersReq(const std::vector<uint8_t>& rx_buffer) :
+    m_req(reinterpret_cast<const modbus::tcp::WriteRegistersReq*>(rx_buffer.data()))
+{}
+
+
+modbus::tcp::Address WriteRegistersReq::getStartAddress() const {
+    return modbus::tcp::Address(ntohs(m_req->startAddress));
+}
+
+
+modbus::tcp::NumRegs WriteRegistersReq::getNumRegs() const {
+    return modbus::tcp::NumRegs(ntohs(m_req->numRegs));
+}
+
+
+uint16_t WriteRegistersReq::getRegister(uint16_t idx) const {
+    return ntohs(m_req->regs[idx]);
+}
+
+
+WriteRegistersRsp::WriteRegistersRsp(const std::vector<uint8_t>& rx_buffer) :
+    m_rsp(reinterpret_cast<const modbus::tcp::WriteValuesRsp*>(rx_buffer.data()))
+{
+}
+
+
+modbus::tcp::Address WriteRegistersRsp::getStartAddress() const {
+    return modbus::tcp::Address(ntohs(m_rsp->startAddress));
+}
+
+
+modbus::tcp::NumRegs WriteRegistersRsp::getNumRegs() const {
+    return modbus::tcp::NumRegs(ntohs(m_rsp->numValues));
+}
+
+
+
 
 
 ErrorResponse::ErrorResponse(const std::vector<uint8_t>& rx_buffer) :

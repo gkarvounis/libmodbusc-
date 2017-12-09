@@ -163,13 +163,13 @@ void Encoder::encodeWriteRegistersReq(const Address& startAddress, Iterator begi
     for (auto it = begin; it != end; ++it)
         numRegs++;
 
-    target.resize(sizeof(WriteRegsReq) + 2*numRegs);
+    target.resize(sizeof(WriteRegistersReq) + 2*numRegs);
 
-    auto* msg = reinterpret_cast<WriteRegsReq*>(target.data());
+    auto* msg = reinterpret_cast<WriteRegistersReq*>(target.data());
 
     msg->header.transactionId = htons(m_transactionId.get());
     msg->header.protocolId = htons(MODBUS_PROTOCOL_ID);
-    msg->header.length = htons(sizeof(WriteRegsReq) + 2*numRegs - 6);
+    msg->header.length = htons(sizeof(WriteRegistersReq) + 2*numRegs - 6);
     msg->header.unitId = m_unitId.get();
     msg->header.functionCode = static_cast<uint8_t>(FunctionCode::WRITE_REGISTERS);
     msg->startAddress = htons(startAddress.get());
@@ -282,7 +282,7 @@ void Encoder::encodeWriteCoilsRsp(const Address& startAddress, const NumBits& nu
     auto* msg = reinterpret_cast<WriteValuesRsp*>(target.data());
 
     fillHeader(&msg->header, sizeof(WriteValuesRsp), FunctionCode::WRITE_COILS);
-    msg->startAddr = htons(startAddress.get());
+    msg->startAddress = htons(startAddress.get());
     msg->numValues = htons(numCoils.get());
 }
 
@@ -293,7 +293,7 @@ void Encoder::encodeWriteRegistersRsp(const Address& startAddress, const NumRegs
     auto* msg = reinterpret_cast<WriteValuesRsp*>(target.data());
     fillHeader(&msg->header, sizeof(WriteValuesRsp), FunctionCode::WRITE_REGISTERS);
 
-    msg->startAddr = htons(startAddress.get());
+    msg->startAddress = htons(startAddress.get());
     msg->numValues = htons(numRegs.get());
 }
 
