@@ -203,7 +203,16 @@ void ServerDevice::handleWriteCoilsReq(const TransactionId& transactionId, const
 
 
 void ServerDevice::handleWriteRegistersReq(const TransactionId& transactionId, const std::vector<uint8_t>& rx_buffer, std::vector<uint8_t>& tx_buffer) {
+    modbus::tcp::decoder_views::WriteRegistersReq view(rx_buffer);
 
+    std::vector<uint16_t> regs;
+    for (std::size_t i = 0; i < view.getNumRegs().get(); ++i)
+        regs.push_back(view.getRegister(i));
+
+    setRegisters(view.getStartAddress(), regs);
+
+    modbus::tcp::Encoder encoder(m_unitId, transactionId);
+    encoder.encodeWriteRegistersRsp(view.getStartAddress(), view.getNumRegs(), tx_buffer);
 }
 
 
