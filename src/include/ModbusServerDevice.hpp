@@ -111,14 +111,14 @@ void ServerDevice::handleReadCoilsReq(const TransactionId& transactionId, const 
     modbus::tcp::decoder_views::ReadCoilsReq view(rx_buffer);
 
     std::vector<bool> coils;
-    coils.reserve(view.getNumBits().get());
-
-    const std::size_t start = view.getStartAddress().get();
-    const std::size_t end = start + view.getNumBits().get();
-
     modbus::tcp::Encoder encoder(m_unitId, transactionId);
 
     try {
+        coils.reserve(view.getNumBits().get());
+
+        const std::size_t start = view.getStartAddress().get();
+        const std::size_t end = start + view.getNumBits().get();
+
         for (std::size_t i = start; i < end; ++i)
             coils.push_back(getCoil(modbus::tcp::Address(i)));
 

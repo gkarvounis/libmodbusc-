@@ -28,7 +28,7 @@ bool TestServerDevice::getCoil(const modbus::tcp::Address& address) const {
 }
 
 
-TEST_CASE("handle read coils", "[server device]") {
+TEST_CASE("handle read coils - sunny day", "[server device]") {
     namespace mt = modbus::tcp;
 
     TestServerDevice dev(mt::UnitId(0xab), [](uint16_t address)->bool {
@@ -85,4 +85,31 @@ TEST_CASE("handle read coils - operation not supported") {
 
     mt::decoder_views::ErrorResponse rsp_payload_view(rsp);
     REQUIRE(rsp_payload_view.getCode() == mt::ExceptionCode::ILLEGAL_FUNCTION);
+}
+
+
+TEST_CASE("handle read coils - bad number of requested coils") {
+    namespace mt = modbus::tcp;
+
+    TestServerDevice dev(mt::UnitId(0xab), [](uint16_t address)->bool {
+        return true;
+    });
+
+    std::vector<uint8_t> req;
+    std::vector<uint8_t> rsp;
+
+    mt::Encoder encoder(mt::UnitId(0xab), mt::TransactionId(0x02));
+    encoder.encodeReadCoilsReq(mt::Address(0x1020), mt::NumBits(4), req);
+    //{0x00, 0x02, 0x00, 0x00, 0x00, 0x06, 0xab, 0x01, 0x10, 0x20, 0x01, 0x02}
+    req[11] = 0x00;
+
+    dev.handleMessage(req, rsp);
+
+    mt::decoder_views::Header rsp_header_view(rsp);
+    REQUIRE(rsp_header_view.isError() == true);
+    REQUIRE(rsp_header_view.getTransactionId() == mt::TransactionId(0x02));
+    REQUIRE(rsp_header_view.getUnitId() == mt::UnitId(0xab));
+
+    mt::decoder_views::ErrorResponse rsp_payload_view(rsp);
+    REQUIRE(rsp_payload_view.getCode() == mt::ExceptionCode::ILLEGAL_DATA_VALUE);
 }
