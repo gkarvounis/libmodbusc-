@@ -4,13 +4,20 @@
 namespace modbus {
 namespace tcp {
 
-struct error : public std::runtime_error {
-    error(const std::string& msg) : std::runtime_error(msg) {}
+struct UnitIdMismatch : public error {
+    UnitIdMismatch(const UnitId& /*received*/, const UnitId& /*myid*/) : error("unit id mismatch") {}
 };
 
+struct FunctionCodeNotSupported : public error { // exception code 1
+    FunctionCodeNotSupported(FunctionCode code) : error("Function code not supported") {}
+};
 
-struct unit_id_mismatch : public error {
-    unit_id_mismatch(const UnitId& /*received*/, const UnitId& /*myid*/) : error("unit id mismatch") {}
+struct BadAddress : public error {  // exception code 2
+    BadAddress(const std::string& msg = "") : error(msg) {}
+};
+
+struct FailedToReadInputs : public error { // exception code 4
+    FailedToReadInputs(const std::string& msg = "") : error(msg) {}
 };
 
 
@@ -22,16 +29,16 @@ public:
     void                    handleMessage(const std::vector<uint8_t>& rx_buffer, std::vector<uint8_t>& tx_buffer);
 
 protected:
-    virtual bool            getCoil(const Address& address) const = 0;
-    virtual bool            getDiscreteInput(const Address& address) const = 0;
-    virtual uint16_t        getHoldingRegister(const Address& addr) const = 0;
-    virtual uint16_t        getInputRegister(const Address& addr) const = 0;
+    virtual bool            getCoil(const Address& address) const;
+    virtual bool            getDiscreteInput(const Address& address) const;
+    virtual uint16_t        getHoldingRegister(const Address& addr) const;
+    virtual uint16_t        getInputRegister(const Address& addr) const;
 
-    virtual void            setCoil(const Address& address, bool value) = 0;
-    virtual void            setRegister(const Address& address, uint16_t value) = 0;
+    virtual void            setCoil(const Address& address, bool value);
+    virtual void            setRegister(const Address& address, uint16_t value);
 
-    virtual void            setCoils(const Address& startAddress, const std::vector<bool>& coils) = 0;
-    virtual void            setRegisters(const Address& startAddress, const std::vector<uint16_t>& regs) = 0;
+    virtual void            setCoils(const Address& startAddress, const std::vector<bool>& coils);
+    virtual void            setRegisters(const Address& startAddress, const std::vector<uint16_t>& regs);
 
 private:
     inline void             handleReadCoilsReq              (const TransactionId& transactionId, const std::vector<uint8_t>& rx_buffer, std::vector<uint8_t>& tx_buffer) const;
@@ -59,7 +66,7 @@ void ServerDevice::handleMessage(const std::vector<uint8_t>& rx_buffer, std::vec
     modbus::tcp::decoder_views::Header header(rx_buffer);
 
     if ((m_unitId.get() != 0) && (header.getUnitId() != m_unitId))
-        throw unit_id_mismatch(m_unitId, header.getUnitId());
+        throw UnitIdMismatch(m_unitId, header.getUnitId());
 
     switch (header.getFunctionCode()) {
         case FunctionCode::READ_COILS:
@@ -109,11 +116,22 @@ void ServerDevice::handleReadCoilsReq(const TransactionId& transactionId, const 
     const std::size_t start = view.getStartAddress().get();
     const std::size_t end = start + view.getNumBits().get();
 
-    for (std::size_t i = start; i < end; ++i)
-        coils.push_back(getCoil(modbus::tcp::Address(i)));
-
     modbus::tcp::Encoder encoder(m_unitId, transactionId);
-    encoder.encodeReadCoilsRsp(coils.begin(), coils.end(), tx_buffer);
+
+    try {
+        for (std::size_t i = start; i < end; ++i)
+            coils.push_back(getCoil(modbus::tcp::Address(i)));
+
+        encoder.encodeReadCoilsRsp(coils.begin(), coils.end(), tx_buffer);
+    } catch (const FunctionCodeNotSupported& ex) {
+        encoder.encodeErrorRsp(FunctionCode::READ_COILS, ExceptionCode::ILLEGAL_FUNCTION, tx_buffer);
+    } catch (const NumBitsOutOfRange& ex) {
+        encoder.encodeErrorRsp(FunctionCode::READ_COILS, ExceptionCode::ILLEGAL_DATA_VALUE, tx_buffer);
+    } catch (const BadAddress& ex) {
+        encoder.encodeErrorRsp(FunctionCode::READ_COILS, ExceptionCode::ILLEGAL_DATA_ADDRESS, tx_buffer);
+    } catch (const FailedToReadInputs& ex) {
+        encoder.encodeErrorRsp(FunctionCode::READ_COILS, ExceptionCode::SLAVE_DEVICE_FAILURE, tx_buffer);
+    }
 }
 
 
@@ -215,6 +233,46 @@ void ServerDevice::handleWriteRegistersReq(const TransactionId& transactionId, c
     encoder.encodeWriteRegistersRsp(view.getStartAddress(), view.getNumRegs(), tx_buffer);
 }
 
+
+bool ServerDevice::getCoil(const Address& address) const {
+    throw FunctionCodeNotSupported(FunctionCode::READ_COILS);
+}
+
+
+bool ServerDevice::getDiscreteInput(const Address& address) const {
+    throw FunctionCodeNotSupported(FunctionCode::READ_DISCRETE_INPUTS);
+}
+
+
+uint16_t ServerDevice::getHoldingRegister(const Address& addr) const {
+    throw FunctionCodeNotSupported(FunctionCode::READ_HOLDING_REGISTERS);
+}
+
+
+uint16_t ServerDevice::getInputRegister(const Address& addr) const {
+    throw FunctionCodeNotSupported(FunctionCode::READ_INPUT_REGISTERS);
+}
+
+
+void ServerDevice::setCoil(const Address& address, bool value) {
+    throw FunctionCodeNotSupported(FunctionCode::WRITE_COIL);
+}
+
+
+void ServerDevice::setRegister(const Address& address, uint16_t value) {
+    throw FunctionCodeNotSupported(FunctionCode::WRITE_REGISTER);
+}
+
+
+
+void ServerDevice::setCoils(const Address& startAddress, const std::vector<bool>& coils) {
+    throw FunctionCodeNotSupported(FunctionCode::WRITE_COILS);
+}
+
+
+void ServerDevice::setRegisters(const Address& startAddress, const std::vector<uint16_t>& regs) {
+    throw FunctionCodeNotSupported(FunctionCode::WRITE_REGISTERS);
+}
 
 } // namespace tcp
 } // namespace modbus

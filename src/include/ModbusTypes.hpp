@@ -7,6 +7,16 @@
 namespace modbus {
 namespace tcp {
 
+struct error : public std::runtime_error {
+    error(const std::string& msg) : std::runtime_error(msg) {}
+};
+
+
+struct NumBitsOutOfRange : public error {
+    NumBitsOutOfRange(const std::string& msg) : error(msg) {}
+};
+
+
 struct Header {
     uint16_t                        transactionId;
     uint16_t                        protocolId;
@@ -160,10 +170,10 @@ void NumRegs::set(uint16_t numRegs) {
 
 void NumRegs::check(uint16_t numRegs) {
     if (numRegs == 0)
-        throw std::logic_error("Cannot submit request for 0 registers");
+        throw NumBitsOutOfRange("Cannot submit request for 0 registers");
 
     if (numRegs > MODBUS_MAX_NUM_REGS_IN_READ_REQUEST)
-        throw std::logic_error("max number of coils that can be requested is MODBUS_MAX_NUM_REGS_IN_READ_REQUEST=0x007D");
+        throw NumBitsOutOfRange("max number of coils that can be requested is MODBUS_MAX_NUM_REGS_IN_READ_REQUEST=0x007D");
 }
 
 } // namespace tcp
