@@ -148,10 +148,10 @@ void NumBits::set(uint16_t numBits) {
 
 void NumBits::check(uint16_t numBits) {
     if (numBits == 0)
-        throw std::logic_error("Cannot submit request for 0 bits");
+        throw NumBitsOutOfRange("Cannot submit request for 0 bits");
 
     if (numBits > MODBUS_MAX_NUM_BITS_IN_READ_REQUEST)
-        throw std::logic_error("max number of bits that can be requested is MODBUS_MAX_NUM_BITS_IN_READ_REQUEST=0x07D0");
+        throw NumBitsOutOfRange("max number of bits that can be requested is MODBUS_MAX_NUM_BITS_IN_READ_REQUEST=0x07D0");
 }
 
 
@@ -170,10 +170,10 @@ void NumRegs::set(uint16_t numRegs) {
 
 void NumRegs::check(uint16_t numRegs) {
     if (numRegs == 0)
-        throw NumBitsOutOfRange("Cannot submit request for 0 registers");
+        throw std::logic_error("Cannot submit request for 0 registers");
 
     if (numRegs > MODBUS_MAX_NUM_REGS_IN_READ_REQUEST)
-        throw NumBitsOutOfRange("max number of coils that can be requested is MODBUS_MAX_NUM_REGS_IN_READ_REQUEST=0x007D");
+        throw std::logic_error("max number of coils that can be requested is MODBUS_MAX_NUM_REGS_IN_READ_REQUEST=0x007D");
 }
 
 } // namespace tcp

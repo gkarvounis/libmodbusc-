@@ -37,7 +37,7 @@ TEST_CASE("modbus::tcp::NumBits", "[types]") {
 TEST_CASE("modbus::tcp::NumCoils bounds check", "[types]") {
     REQUIRE_THROWS_AS([]() {
         modbus::tcp::NumBits numCoils(0);
-    }(), std::logic_error);
+    }(), modbus::tcp::NumBitsOutOfRange);
 
     REQUIRE_NOTHROW([]() {
         modbus::tcp::NumBits numCoils1(1);
@@ -46,7 +46,7 @@ TEST_CASE("modbus::tcp::NumCoils bounds check", "[types]") {
 
     REQUIRE_THROWS_AS([]() {
         modbus::tcp::NumBits numCoils(2001);
-    }(), std::logic_error);
+    }(), modbus::tcp::NumBitsOutOfRange);
 
 }
 
