@@ -41,6 +41,8 @@ protected:
     virtual void            setRegisters(const Address& startAddress, const std::vector<uint16_t>& regs);
 
 private:
+    inline void             buildResponse                   (const TransactionId& transactionId, std::vector<uint8_t>& tx_buffer, std::function<void(void)> handler);
+
     inline void             handleReadCoilsReq              (const TransactionId& transactionId, const std::vector<uint8_t>& rx_buffer, std::vector<uint8_t>& tx_buffer) const;
     inline void             handleReadDiscreteInputsReq     (const TransactionId& transactionId, const std::vector<uint8_t>& rx_buffer, std::vector<uint8_t>& tx_buffer) const;
     inline void             handleReadHoldingRegistersReq   (const TransactionId& transactionId, const std::vector<uint8_t>& rx_buffer, std::vector<uint8_t>& tx_buffer) const;
@@ -70,39 +72,72 @@ void ServerDevice::handleMessage(const std::vector<uint8_t>& rx_buffer, std::vec
 
     switch (header.getFunctionCode()) {
         case FunctionCode::READ_COILS:
-            handleReadCoilsReq(header.getTransactionId(), rx_buffer, tx_buffer);
+            buildResponse(header.getTransactionId(), tx_buffer, [this, &header, &rx_buffer, &tx_buffer]() {
+                handleReadCoilsReq(header.getTransactionId(), rx_buffer, tx_buffer);
+            });
             break;
 
         case FunctionCode::READ_DISCRETE_INPUTS:
-            handleReadDiscreteInputsReq(header.getTransactionId(), rx_buffer, tx_buffer);
+            buildResponse(header.getTransactionId(), tx_buffer, [this, &header, &rx_buffer, &tx_buffer]() {
+                handleReadDiscreteInputsReq(header.getTransactionId(), rx_buffer, tx_buffer);
+            });
             break;
 
         case FunctionCode::READ_HOLDING_REGISTERS:
-            handleReadHoldingRegistersReq(header.getTransactionId(), rx_buffer, tx_buffer);
+            buildResponse(header.getTransactionId(), tx_buffer, [this, &header, &rx_buffer, &tx_buffer]() {
+                handleReadHoldingRegistersReq(header.getTransactionId(), rx_buffer, tx_buffer);
+            });
             break;
 
         case FunctionCode::READ_INPUT_REGISTERS:
-            handleReadInputRegistersReq(header.getTransactionId(), rx_buffer, tx_buffer);
+            buildResponse(header.getTransactionId(), tx_buffer, [this, &header, &rx_buffer, &tx_buffer]() {
+                handleReadInputRegistersReq(header.getTransactionId(), rx_buffer, tx_buffer);
+            });
             break;
 
         case FunctionCode::WRITE_COIL:
-            handleWriteSingleCoilReq(header.getTransactionId(), rx_buffer, tx_buffer);
+            buildResponse(header.getTransactionId(), tx_buffer, [this, &header, &rx_buffer, &tx_buffer]() {
+                handleWriteSingleCoilReq(header.getTransactionId(), rx_buffer, tx_buffer);
+            });
             break;
 
         case FunctionCode::WRITE_REGISTER:
-            handleWriteSingleRegisterReq(header.getTransactionId(), rx_buffer, tx_buffer);
+            buildResponse(header.getTransactionId(), tx_buffer, [this, &header, &rx_buffer, &tx_buffer]() {
+                handleWriteSingleRegisterReq(header.getTransactionId(), rx_buffer, tx_buffer);
+            });
             break;
 
         case FunctionCode::WRITE_COILS:
-            handleWriteCoilsReq(header.getTransactionId(), rx_buffer, tx_buffer);
+            buildResponse(header.getTransactionId(), tx_buffer, [this, &header, &rx_buffer, &tx_buffer]() {
+                handleWriteCoilsReq(header.getTransactionId(), rx_buffer, tx_buffer);
+            });
             break;
 
         case FunctionCode::WRITE_REGISTERS:
-            handleWriteRegistersReq(header.getTransactionId(), rx_buffer, tx_buffer);
+            buildResponse(header.getTransactionId(), tx_buffer, [this, &header, &rx_buffer, &tx_buffer]() {
+                handleWriteRegistersReq(header.getTransactionId(), rx_buffer, tx_buffer);
+            });
             break;
 
         default:
             throw std::logic_error("Function code not supported");
+    }
+}
+
+
+void ServerDevice::buildResponse(const TransactionId& transactionId, std::vector<uint8_t>& tx_buffer, std::function<void(void)> handler) {
+    modbus::tcp::Encoder encoder(m_unitId, transactionId);
+
+    try {
+        handler();
+    } catch (const FunctionCodeNotSupported& ex) {
+        encoder.encodeErrorRsp(FunctionCode::READ_COILS, ExceptionCode::ILLEGAL_FUNCTION, tx_buffer);
+    } catch (const NumBitsOutOfRange& ex) {
+        encoder.encodeErrorRsp(FunctionCode::READ_COILS, ExceptionCode::ILLEGAL_DATA_VALUE, tx_buffer);
+    } catch (const BadAddress& ex) {
+        encoder.encodeErrorRsp(FunctionCode::READ_COILS, ExceptionCode::ILLEGAL_DATA_ADDRESS, tx_buffer);
+    } catch (const FailedToReadInputs& ex) {
+        encoder.encodeErrorRsp(FunctionCode::READ_COILS, ExceptionCode::SLAVE_DEVICE_FAILURE, tx_buffer);
     }
 }
 
@@ -113,25 +148,15 @@ void ServerDevice::handleReadCoilsReq(const TransactionId& transactionId, const 
     std::vector<bool> coils;
     modbus::tcp::Encoder encoder(m_unitId, transactionId);
 
-    try {
-        coils.reserve(view.getNumBits().get());
+    coils.reserve(view.getNumBits().get());
 
-        const std::size_t start = view.getStartAddress().get();
-        const std::size_t end = start + view.getNumBits().get();
+    const std::size_t start = view.getStartAddress().get();
+    const std::size_t end = start + view.getNumBits().get();
 
-        for (std::size_t i = start; i < end; ++i)
-            coils.push_back(getCoil(modbus::tcp::Address(i)));
+    for (std::size_t i = start; i < end; ++i)
+        coils.push_back(getCoil(modbus::tcp::Address(i)));
 
-        encoder.encodeReadCoilsRsp(coils.begin(), coils.end(), tx_buffer);
-    } catch (const FunctionCodeNotSupported& ex) {
-        encoder.encodeErrorRsp(FunctionCode::READ_COILS, ExceptionCode::ILLEGAL_FUNCTION, tx_buffer);
-    } catch (const NumBitsOutOfRange& ex) {
-        encoder.encodeErrorRsp(FunctionCode::READ_COILS, ExceptionCode::ILLEGAL_DATA_VALUE, tx_buffer);
-    } catch (const BadAddress& ex) {
-        encoder.encodeErrorRsp(FunctionCode::READ_COILS, ExceptionCode::ILLEGAL_DATA_ADDRESS, tx_buffer);
-    } catch (const FailedToReadInputs& ex) {
-        encoder.encodeErrorRsp(FunctionCode::READ_COILS, ExceptionCode::SLAVE_DEVICE_FAILURE, tx_buffer);
-    }
+    encoder.encodeReadCoilsRsp(coils.begin(), coils.end(), tx_buffer);
 }
 
 
@@ -234,43 +259,43 @@ void ServerDevice::handleWriteRegistersReq(const TransactionId& transactionId, c
 }
 
 
-bool ServerDevice::getCoil(const Address& address) const {
+bool ServerDevice::getCoil(const Address&) const {
     throw FunctionCodeNotSupported(FunctionCode::READ_COILS);
 }
 
 
-bool ServerDevice::getDiscreteInput(const Address& address) const {
+bool ServerDevice::getDiscreteInput(const Address&) const {
     throw FunctionCodeNotSupported(FunctionCode::READ_DISCRETE_INPUTS);
 }
 
 
-uint16_t ServerDevice::getHoldingRegister(const Address& addr) const {
+uint16_t ServerDevice::getHoldingRegister(const Address&) const {
     throw FunctionCodeNotSupported(FunctionCode::READ_HOLDING_REGISTERS);
 }
 
 
-uint16_t ServerDevice::getInputRegister(const Address& addr) const {
+uint16_t ServerDevice::getInputRegister(const Address&) const {
     throw FunctionCodeNotSupported(FunctionCode::READ_INPUT_REGISTERS);
 }
 
 
-void ServerDevice::setCoil(const Address& address, bool value) {
+void ServerDevice::setCoil(const Address&, bool) {
     throw FunctionCodeNotSupported(FunctionCode::WRITE_COIL);
 }
 
 
-void ServerDevice::setRegister(const Address& address, uint16_t value) {
+void ServerDevice::setRegister(const Address&, uint16_t) {
     throw FunctionCodeNotSupported(FunctionCode::WRITE_REGISTER);
 }
 
 
 
-void ServerDevice::setCoils(const Address& startAddress, const std::vector<bool>& coils) {
+void ServerDevice::setCoils(const Address&, const std::vector<bool>&) {
     throw FunctionCodeNotSupported(FunctionCode::WRITE_COILS);
 }
 
 
-void ServerDevice::setRegisters(const Address& startAddress, const std::vector<uint16_t>& regs) {
+void ServerDevice::setRegisters(const Address&, const std::vector<uint16_t>&) {
     throw FunctionCodeNotSupported(FunctionCode::WRITE_REGISTERS);
 }
 

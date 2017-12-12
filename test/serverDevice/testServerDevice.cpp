@@ -67,7 +67,7 @@ TEST_CASE("handle read coils - bad unit id", "[server device]") {
 TEST_CASE("handle read coils - operation not supported") {
     namespace mt = modbus::tcp;
 
-    TestServerDevice dev(mt::UnitId(0xab), [](uint16_t address)->bool {
+    TestServerDevice dev(mt::UnitId(0xab), [](uint16_t /*address*/)->bool {
         throw mt::FunctionCodeNotSupported(mt::FunctionCode::READ_COILS);
     });
 
@@ -91,7 +91,7 @@ TEST_CASE("handle read coils - operation not supported") {
 TEST_CASE("handle read coils - bad number of requested coils") {
     namespace mt = modbus::tcp;
 
-    TestServerDevice dev(mt::UnitId(0xab), [](uint16_t address)->bool {
+    TestServerDevice dev(mt::UnitId(0xab), [](uint16_t /*address*/)->bool {
         return true;
     });
 
