@@ -1,5 +1,5 @@
-#ifndef MODBUS_DEVICE_HPP
-#define MODBUS_DEVICE_HPP
+#ifndef MODBUS_SERVER_DEVICE_HPP
+#define MODBUS_SERVER_DEVICE_HPP
 
 namespace modbus {
 namespace tcp {

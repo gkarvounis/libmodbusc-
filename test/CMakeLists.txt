@@ -1,4 +1,5 @@
 add_subdirectory(encoder)
 add_subdirectory(decoder)
 add_subdirectory(serverDevice)
+add_subdirectory(server)
 
