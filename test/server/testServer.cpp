@@ -18,7 +18,7 @@ public:
     ServerDevice(const modbus::tcp::UnitId& unitId) : modbus::tcp::ServerDevice(unitId) {}
 };
 
-TEST_CASE("1", "[]") {
+TEST_CASE("server must respond to read coils req", "[server]") {
     ServerDevice dev(modbus::tcp::UnitId(0xab));
 
     boost::asio::io_service io;
