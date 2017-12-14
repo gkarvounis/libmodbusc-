@@ -23,9 +23,11 @@ TEST_CASE("server must respond to read coils req", "[server]") {
 
     boost::asio::io_service io;
     modbus::tcp::Server server(io, dev);
+    bool serverDone = false;
 
     const boost::asio::ip::tcp::endpoint ep(boost::asio::ip::address::from_string("127.0.0.1"), 50000);
-    server.start(ep, [](){
+    server.start(ep, [&serverDone](){
+        serverDone = true;
     });
     io.run_one();
 
@@ -47,7 +49,15 @@ TEST_CASE("server must respond to read coils req", "[server]") {
     boost::asio::read(client, boost::asio::buffer(rsp));
 
     server.stop();
-    io.run();
+    io.run_one();
+    io.run_one();
+    io.run_one();
+    io.run_one();
+    io.run_one();
+    io.run_one();
+    io.run_one();
+    io.run_one();
 
+    REQUIRE(serverDone == true);
     REQUIRE(rsp == (std::vector<uint8_t>{0x00, 0x02, 0x00, 0x00, 0x00, 0x03, 0xab, 0x81, 0x01}));
 }
