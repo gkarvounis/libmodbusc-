@@ -25,7 +25,6 @@ private:
     std::set<PModbusSession>        m_sessions;
     std::function<void(void)>       m_done_cb;
 
-    void                            on_start(const boost::asio::ip::tcp::endpoint& ep, std::function<void(void)> done_cb);
     void                            init_accepting();
     void                            on_client_connected(PModbusSession session, const boost::system::error_code& ec);
     void                            on_session_done(PModbusSession session);
