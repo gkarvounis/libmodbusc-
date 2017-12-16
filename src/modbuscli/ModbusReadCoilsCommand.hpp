@@ -9,53 +9,48 @@ class ReadCoilsCommand : public ModbusCommand {
 public:
     inline                      ReadCoilsCommand();
     void                        exec(ModbusClient& client, const std::vector<std::string>& args) override;
-    std::string                 getShortHelpText() override;
-    std::string                 getUsageText() override;
+    std::string                 getShortHelpText() const override;
+    std::string                 getHelpText() const override;
 
 private:
-    struct CmdOptions {
-        uint16_t startAddress;
-        uint16_t numCoils;
-    } cmd_options;
+    uint16_t                    m_startAddress;
+    uint16_t                    m_numCoils;
 
-    void                        printResult(modbus::tcp::encoder::ReadCoilsRsp::Buffer& rsp);
+    // void                        printResult(modbus::tcp::encoder::ReadCoilsRsp::Buffer& rsp);
+    boost::program_options::options_description m_options;
 };
 
 
 ReadCoilsCommand::ReadCoilsCommand() :
-    ModbusCommand("getcoils"),
-    cmd_options()
+    ModbusCommand(),
+    m_options("Options")
 {
     namespace po = boost::program_options;
 
-    m_visible_options.add_options()
-        ("startAddr,s", po::value<uint16_t>(&cmd_options.startAddress)->required(), "address of first coil to retrieve")
-        ("numCoils,n", po::value<uint16_t>(&cmd_options.numCoils)->required(), "number of coils to retrieve (up to 2000 coils)");
-
-    compose_options();
+    m_options.add_options()
+        ("startAddress,s", po::value<uint16_t>(&m_startAddress)->required(), "address of first coil to retrieve")
+        ("numCoils,n", po::value<uint16_t>(&m_numCoils)->required(), "number of coils to retrieve (up to 2000 coils)");
 }
 
 
 void ReadCoilsCommand::exec(ModbusClient& client, const std::vector<std::string>& args) {
-    ModbusCommand::exec(client, args);
+    namespace po = boost::program_options;
 
-    modbus::tcp::encoder::ReadCoilsRsp::Buffer buf;
+    po::variables_map vm;
+    //po::store(po::command_line_parser(args).options(m_options).positional(m_positional_options).run(), vm);
+    po::store(po::command_line_parser(args).options(m_options).run(), vm);
+    po::notify(vm);
 
-    try {
-        client.readCoils(cmd_options.startAddress, cmd_options.numCoils, buf);
-    } catch (const ModbusErrorRsp& ex) {
-        std::cout << "Device responded with error: " + std::string(ex.what()) << std::endl;
-        return;
-    } catch (const std::out_of_range& ex) {
-        std::cout << ex.what() << std::endl;
-        return;
-    }
+    client.readCoils(modbus::tcp::Address(m_startAddress), modbus::tcp::NumBits(m_numCoils));
+/*
 
     printResult(buf);
+*/
 }
 
 
-void ReadCoilsCommand::printResult(modbus::tcp::encoder::ReadCoilsRsp::Buffer& rsp) {
+//void ReadCoilsCommand::printResult(modbus::tcp::encoder::ReadCoilsRsp::Buffer& rsp) {
+/*
     std::cout << "unitId:" << static_cast<unsigned>(rsp.header.unitId) << std::endl
               << "transactionId: " << ntohs(rsp.header.transactionId) << std::endl;
 
@@ -81,17 +76,17 @@ void ReadCoilsCommand::printResult(modbus::tcp::encoder::ReadCoilsRsp::Buffer& r
 
         std::cout << std::endl;
     }
-}
+*/
+//}
 
 
-std::string ReadCoilsCommand::getShortHelpText() {
+std::string ReadCoilsCommand::getShortHelpText() const {
     return "Read a list of coils from modbus device";
 }
 
 
-std::string ReadCoilsCommand::getUsageText() {
+std::string ReadCoilsCommand::getHelpText() const {
     return "getcoils [options]";
 }
 
 #endif
-

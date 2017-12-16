@@ -3,12 +3,12 @@
 
 #include "ModbusCommand.hpp"
 #include "ModbusReadCoilsCommand.hpp"
+#include "ModbusConnectCommand.hpp"
 #include "ModbusHelpCommand.hpp"
 #include "ModbusExitCommand.hpp"
 
 #include <map>
 #include <memory>
-#include <iomanip>
 
 
 class ModbusCommands {
@@ -29,14 +29,12 @@ private:
 ModbusCommands::ModbusCommands() :
     m_commands()
 {
-    auto ptr1 = std::make_shared<ReadCoilsCommand>();
-    m_commands[ptr1->getCommand()] = ptr1;
+    m_commands["exit"] = std::make_shared<ModbusExitCommand>();
+    m_commands["connect"] = std::make_shared<ModbusConnectCommand>();
+    m_commands["readcoils"] = std::make_shared<ReadCoilsCommand>();
 
-    auto ptr2 = std::make_shared<ModbusHelpCommand>();
-    m_commands[ptr2->getCommand()] = ptr2;
-
-    auto ptr3 = std::make_shared<ModbusExitCommand>();
-    m_commands[ptr3->getCommand()] = ptr3;
+    auto help_cmd = std::make_shared<ModbusHelpCommand>(m_commands);
+    m_commands["help"] = help_cmd;
 }
 
 
@@ -47,39 +45,10 @@ void ModbusCommands::exec(ModbusClient& client, const std::string& line) {
 
     auto cmdobj = m_commands.find(cmd);
 
-    try {
-        if (cmdobj == m_commands.end()) {
-            std::cout << "No such command" << std::endl;
-            return;
-        }
-
+    if (cmdobj == m_commands.end()) {
+        std::cout << "No such command" << std::endl;
+    } else
         cmdobj->second->exec(client, args);
-    } catch (const ModbusCliHelpForCommand& ex) {
-        std::string cmd(ex.what());
-        show_command_help(cmd);
-    } catch (const ModbusCliHelpListCommands& ex) {
-        show_commands_list();
-    }
-}
-
-
-void ModbusCommands::show_commands_list() {
-    std::cout << "List of available commands:" << std::endl;
-
-    for (const auto& kv: m_commands)
-        std::cout << "    " << std::setw(10) << kv.second->getCommand() << " - " << kv.second->getShortHelpText() << std::endl;
-
-    std::cout << "Type 'help <cmd>' to see details for each command." << std::endl;
-}
-
-
-void ModbusCommands::show_command_help(const std::string& cmd) {
-    auto cmdobj = m_commands.find(cmd);
-
-    if (cmdobj == m_commands.end())
-        std::cout << "No such command: " << cmd << std::endl;
-    else
-        cmdobj->second->printHelp();
 }
 
 
@@ -91,13 +60,11 @@ void ModbusCommands::parse_cmd_line(const std::string& line, std::string& cmd, s
     if (pos == std::string::npos) {
         cmd = line;
         args.clear();
-        return;
+    } else {
+        cmd = line.substr(0, pos);
+        std::string remainder(line.begin()+pos+1, line.end());
+        args = po::split_unix(remainder);
     }
-        
-    cmd = line.substr(0, pos);
-    std::string remainder(line.begin()+pos+1, line.end());
-    args = po::split_unix(remainder);
 }
 
 #endif
-

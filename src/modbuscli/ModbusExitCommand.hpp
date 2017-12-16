@@ -15,32 +15,29 @@ public:
     inline                      ModbusExitCommand();
     inline void                 exec(ModbusClient& client, const std::vector<std::string>& args);
 
-    std::string                 getShortHelpText() override;
-    std::string                 getUsageText() override;
+    std::string                 getShortHelpText() const override;
+    std::string                 getHelpText() const override;
 };
 
 
 ModbusExitCommand::ModbusExitCommand() :
-    ModbusCommand("exit")
+    ModbusCommand()
 {
-    compose_options();
 }
 
 
 void ModbusExitCommand::exec(ModbusClient& client, const std::vector<std::string>& args) {
-    ModbusCommand::exec(client, args);
     throw ModbusCliExit();
 }
 
 
-std::string ModbusExitCommand::getShortHelpText() {
+std::string ModbusExitCommand::getShortHelpText() const {
     return "Exit from the program";
 }
 
 
-std::string ModbusExitCommand::getUsageText() {
+std::string ModbusExitCommand::getHelpText() const {
     return "exit";
 }
 
 #endif
-

@@ -1,68 +1,75 @@
 #ifndef MODBUS_CLIENT_HPP
 #define MODBUS_CLIENT_HPP
 
+#include <vector>
+#include <string>
+#include "ModbusConsts.hpp"
+#include "ModbusTypes.hpp"
 #include "ModbusEncoder.hpp"
+#include "ModbusDecoder.hpp"
 #include <boost/asio.hpp>
 #include <stdexcept>
-
-struct ModbusErrorRsp : public std::runtime_error {
-    ModbusErrorRsp(modbus::tcp::FunctionCode funcCode) : std::runtime_error("Modbus error " + std::to_string(funcCode)) {}
-};
 
 
 class ModbusClient {
 public:
-    inline                              ModbusClient(uint16_t unitId);
+    inline                              ModbusClient(const modbus::tcp::UnitId& unitId);
 
-    inline void                         setTransactionId(uint16_t transactionId);
-    inline void                         connect(const std::string& ip, uint16_t port);
-    inline void                         readCoils(uint16_t startAddr, uint16_t numCoils, modbus::tcp::encoder::ReadCoilsRsp::Buffer& rsp);
+    inline void                         setTransactionId(const modbus::tcp::TransactionId& transactionId);
+    inline void                         connect(const boost::asio::ip::tcp::endpoint& ep);
+    inline void                         readCoils(const modbus::tcp::Address& startAddress, const modbus::tcp::NumBits& numCoils);
 
 private:
     boost::asio::io_service             m_io;
     boost::asio::ip::tcp::socket        m_socket;
-    uint16_t                            m_unitId;
-    uint16_t                            m_transactionId;
+    modbus::tcp::UnitId                 m_unitId;
+    modbus::tcp::TransactionId          m_transactionId;
+    std::vector<uint8_t>           m_tx_buffer;
+    std::vector<uint8_t>           m_rx_buffer;
 };
 
 
-ModbusClient::ModbusClient(uint16_t unitId) :
+ModbusClient::ModbusClient(const modbus::tcp::UnitId& unitId) :
     m_io(),
     m_socket(m_io),
     m_unitId(unitId),
-    m_transactionId(1)
+    m_transactionId(1),
+    m_tx_buffer(),
+    m_rx_buffer()
 {}
 
 
-void ModbusClient::setTransactionId(uint16_t transactionId) {
+void ModbusClient::setTransactionId(const modbus::tcp::TransactionId& transactionId) {
     m_transactionId = transactionId;
 }
 
 
-void ModbusClient::connect(const std::string& ip, uint16_t port) {
-    m_socket.connect(boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(ip), port));
+void ModbusClient::connect(const boost::asio::ip::tcp::endpoint& ep) {
+    m_socket.connect(ep);
 }
 
+#include <iostream>
 
-void ModbusClient::readCoils(uint16_t startAddr, uint16_t numCoils, modbus::tcp::encoder::ReadCoilsRsp::Buffer& rsp) {
-    modbus::tcp::encoder::ReadCoilsReq::Buffer req_buf;
-    modbus::tcp::encoder::ReadCoilsReq req(req_buf);
-    req.setUnitId(m_unitId);
-    req.setTransactionId(m_transactionId);
-    req.setStartAddress(startAddr);
-    req.setNumValues(numCoils);
+void ModbusClient::readCoils(const modbus::tcp::Address& startAddress, const modbus::tcp::NumBits& numCoils) {
+    modbus::tcp::Encoder encoder(m_unitId, m_transactionId);
 
-    boost::asio::write(m_socket, boost::asio::buffer(&req_buf, req.message_size()));
+    encoder.encodeReadCoilsReq(startAddress, numCoils, m_tx_buffer);
+    boost::asio::write(m_socket, boost::asio::buffer(m_tx_buffer));
 
-    boost::asio::read(m_socket, boost::asio::buffer(&rsp, sizeof(rsp.header)));
-    uint16_t payload_size = ntohs(rsp.header.length) - 2;
-    uint8_t *payload = reinterpret_cast<uint8_t*>(&rsp) + sizeof(rsp.header);
+    m_rx_buffer.resize(sizeof(modbus::tcp::Header));
+    boost::asio::read(m_socket, boost::asio::buffer(m_rx_buffer));
+
+    modbus::tcp::decoder_views::Header rsp_header_view(m_rx_buffer);
+    uint16_t payload_size = rsp_header_view.getLength() - 2;
+    m_rx_buffer.resize(sizeof(modbus::tcp::Header) + payload_size);
+    uint8_t *payload = m_rx_buffer.data() + sizeof(modbus::tcp::Header);
+
     boost::asio::read(m_socket, boost::asio::buffer(payload, payload_size));
 
-    if (rsp.header.functionCode & 0x80) {
-        const auto* err_buf = reinterpret_cast<modbus::tcp::encoder::ErrorResponse::Buffer*>(&rsp);
-        throw ModbusErrorRsp(static_cast<modbus::tcp::FunctionCode>(err_buf->errCode));
-    }
+    for (auto c: m_rx_buffer)
+        std::cout << std::hex << (int)c << ' ';
+
+    std::cout << std::endl;
 }
 
 #endif

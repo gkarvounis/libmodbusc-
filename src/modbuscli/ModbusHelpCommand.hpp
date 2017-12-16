@@ -17,46 +17,80 @@ struct ModbusCliHelpListCommands : std::runtime_error {
 
 class ModbusHelpCommand : public ModbusCommand {
 public:
-    inline                      ModbusHelpCommand();
-    void                        exec(ModbusClient& client, const std::vector<std::string>& args) override;
-    std::string                 getShortHelpText() override;
-    std::string                 getUsageText() override;
+    inline                                          ModbusHelpCommand(const std::map<std::string, std::shared_ptr<ModbusCommand>>& commands);
+    void                                            exec(ModbusClient& client, const std::vector<std::string>& args) override;
+    std::string                                     getShortHelpText() const override;
+    std::string                                     getHelpText() const override;
+
 private:
-    std::string                 m_cmd;
+    void                                            show_commands_list() const;
+    void                                            show_command_help() const;
+
+    const std::map<std::string, std::shared_ptr<ModbusCommand>>& m_commands;
+    std::string                                     m_cmd;
+    boost::program_options::options_description     m_options;
+    boost::program_options::options_description     m_positional_options;
 };
 
 
-ModbusHelpCommand::ModbusHelpCommand() :
-    ModbusCommand("help")
+ModbusHelpCommand::ModbusHelpCommand(const std::map<std::string, std::shared_ptr<ModbusCommand>>& commands) :
+    ModbusCommand(),
+    m_commands(commands),
+    m_cmd(),
+    m_options("options"),
+    m_positional_options()
 {
     namespace po = boost::program_options;
 
-    m_hidden_options.add_options()
+    m_options.add_options()
         ("cmd", po::value<std::string>(&m_cmd)->default_value(""), "show help for a command");
 
-    m_positional_options.add("cmd", 1);
-    compose_options();
+    //m_positional_options.add("cmd", 1);
 }
 
 
 void ModbusHelpCommand::exec(ModbusClient& client, const std::vector<std::string>& args) {
-    ModbusCommand::exec(client, args);
+    namespace po = boost::program_options;
+
+    po::variables_map vm;
+    //po::store(po::command_line_parser(args).options(m_options).positional(m_positional_options).run(), vm);
+    po::store(po::command_line_parser(args).options(m_options).run(), vm);
+    po::notify(vm);
 
     if (m_cmd == "")
-        throw ModbusCliHelpListCommands();
+        show_commands_list();
     else
-        throw ModbusCliHelpForCommand(m_cmd);
+        show_command_help();
 }
 
 
-std::string ModbusHelpCommand::getShortHelpText() {
+void ModbusHelpCommand::show_commands_list() const {
+    std::cout << "List of available commands:" << std::endl;
+
+    for (const auto& kv: m_commands)
+        std::cout << "    " << std::setw(10) << kv.first << " - " << kv.second->getShortHelpText() << std::endl;
+
+    std::cout << "Type 'help <cmd>' to see details for each command." << std::endl;
+}
+
+
+void ModbusHelpCommand::show_command_help() const {
+    auto cmdobj = m_commands.find(m_cmd);
+
+    if (cmdobj == m_commands.end())
+        std::cout << "No such command: " << m_cmd << std::endl;
+    else
+        std::cout << cmdobj->second->getHelpText() << std::endl;
+}
+
+
+std::string ModbusHelpCommand::getShortHelpText() const {
     return "Get list of available commands and help about each one";
 }
 
 
-std::string ModbusHelpCommand::getUsageText() {
+std::string ModbusHelpCommand::getHelpText() const {
     return "help <cmd>";
 }
 
 #endif
-
