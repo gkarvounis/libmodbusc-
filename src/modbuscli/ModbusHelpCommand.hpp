@@ -17,23 +17,26 @@ struct ModbusCliHelpListCommands : std::runtime_error {
 
 class ModbusHelpCommand : public ModbusCommand {
 public:
-    inline                                          ModbusHelpCommand(const std::map<std::string, std::shared_ptr<ModbusCommand>>& commands);
+    inline                                          ModbusHelpCommand(const ModbusCommandsMap& commands);
     void                                            exec(ModbusClient& client, const std::vector<std::string>& args) override;
     std::string                                     getShortHelpText() const override;
     std::string                                     getHelpText() const override;
 
 private:
+    using OptionsDescription = boost::program_options::options_description;
+    using PositionalOptionsDescription = boost::program_options::positional_options_description;
+
     void                                            show_commands_list() const;
     void                                            show_command_help() const;
 
-    const std::map<std::string, std::shared_ptr<ModbusCommand>>& m_commands;
+    const ModbusCommandsMap                        &m_commands;
     std::string                                     m_cmd;
-    boost::program_options::options_description     m_options;
-    boost::program_options::options_description     m_positional_options;
+    OptionsDescription                              m_options;
+    PositionalOptionsDescription                    m_positional_options;
 };
 
 
-ModbusHelpCommand::ModbusHelpCommand(const std::map<std::string, std::shared_ptr<ModbusCommand>>& commands) :
+ModbusHelpCommand::ModbusHelpCommand(const ModbusCommandsMap& commands) :
     ModbusCommand(),
     m_commands(commands),
     m_cmd(),
@@ -45,7 +48,7 @@ ModbusHelpCommand::ModbusHelpCommand(const std::map<std::string, std::shared_ptr
     m_options.add_options()
         ("cmd", po::value<std::string>(&m_cmd)->default_value(""), "show help for a command");
 
-    //m_positional_options.add("cmd", 1);
+    m_positional_options.add("cmd", 1);
 }
 
 
@@ -53,8 +56,7 @@ void ModbusHelpCommand::exec(ModbusClient& client, const std::vector<std::string
     namespace po = boost::program_options;
 
     po::variables_map vm;
-    //po::store(po::command_line_parser(args).options(m_options).positional(m_positional_options).run(), vm);
-    po::store(po::command_line_parser(args).options(m_options).run(), vm);
+    po::store(po::command_line_parser(args).options(m_options).positional(m_positional_options).run(), vm);
     po::notify(vm);
 
     if (m_cmd == "")
@@ -90,7 +92,13 @@ std::string ModbusHelpCommand::getShortHelpText() const {
 
 
 std::string ModbusHelpCommand::getHelpText() const {
-    return "help <cmd>";
+    std::stringstream ss;
+
+    ss << "Prints help for a command." << std::endl
+       << "Usage:" << std::endl
+       << "    help <cmd>" << std::endl;
+
+    return ss.str();
 }
 
 #endif

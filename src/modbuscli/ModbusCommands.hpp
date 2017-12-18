@@ -2,13 +2,12 @@
 #define MODBUS_COMMANDS_HPP
 
 #include "ModbusCommand.hpp"
+#include "ModbusCommandsMap.hpp"
+
 #include "ModbusReadCoilsCommand.hpp"
 #include "ModbusConnectCommand.hpp"
 #include "ModbusHelpCommand.hpp"
 #include "ModbusExitCommand.hpp"
-
-#include <map>
-#include <memory>
 
 
 class ModbusCommands {
@@ -17,12 +16,10 @@ public:
     inline void                     exec(ModbusClient& client, const std::string& line);
 
 private:
-    using  CommandsMap = std::map<std::string, std::shared_ptr<ModbusCommand>>;
-
     inline void                     show_commands_list();
     inline void                     show_command_help(const std::string& cmd);
-    static void                     parse_cmd_line(const std::string& line, std::string& cmd, std::vector<std::string>& args);
-    CommandsMap                     m_commands;
+    inline static void              parse_cmd_line(const std::string& line, std::string& cmd, std::vector<std::string>& args);
+    ModbusCommandsMap               m_commands;
 };
 
 
