@@ -94,11 +94,13 @@ std::string ModbusHelpCommand::getShortHelpText() const {
 std::string ModbusHelpCommand::getHelpText() const {
     std::stringstream ss;
 
-    ss << "Prints help for a command." << std::endl
+    ss << getShortHelpText() << std::endl
        << "Usage:" << std::endl
-       << "    help <cmd>" << std::endl;
+       << "    help [<cmd>]" << std::endl
+       << "If no command is given, a list of available commands is printed." << std::endl;
 
     return ss.str();
 }
 
 #endif
+
