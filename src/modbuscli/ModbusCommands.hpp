@@ -4,7 +4,9 @@
 #include "ModbusCommand.hpp"
 #include "ModbusCommandsMap.hpp"
 
+
 #include "ModbusReadCoilsCommand.hpp"
+#include "ModbusReadDiscreteInputs.hpp"
 #include "ModbusConnectCommand.hpp"
 #include "ModbusHelpCommand.hpp"
 #include "ModbusExitCommand.hpp"
@@ -29,6 +31,7 @@ ModbusCommands::ModbusCommands() :
     m_commands["exit"] = std::make_shared<ModbusExitCommand>();
     m_commands["connect"] = std::make_shared<ModbusConnectCommand>();
     m_commands["readcoils"] = std::make_shared<ReadCoilsCommand>();
+    m_commands["readinputs"] = std::make_shared<ReadDiscreteInputs>();
 
     auto help_cmd = std::make_shared<ModbusHelpCommand>(m_commands);
     m_commands["help"] = help_cmd;
