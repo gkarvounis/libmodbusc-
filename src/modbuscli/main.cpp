@@ -1,3 +1,4 @@
+#include "OutputFormatter.hpp"
 #include "ModbusClient.hpp"
 #include "ModbusCommands.hpp"
 #include "CommandLineOptions.hpp"
@@ -19,7 +20,8 @@ int main(int argc, char** argv) {
               << "  Type 'help <cmd>' to see the usage of each command" << std::endl
               << std::endl;
 
-    ModbusClient client(modbus::tcp::UnitId(options.unitId));
+    StandardOutputFormatter out;
+    ModbusClient client(modbus::tcp::UnitId(options.unitId), out);
     ModbusCommands commands;
 
     if (!options.server_ip.empty()) {
