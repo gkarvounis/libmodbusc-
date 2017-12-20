@@ -8,11 +8,13 @@ public:
     void                displayErrorResponse(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const override;
     void                displayReadCoils(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const override;
     void                displayReadDiscreteInputs(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const override;
+    void                displayReadInputRegisters(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const override;
 
 private:
     static void         printMessage(const std::string& prefix, const std::vector<uint8_t>& buffer);
     static void         printResponseHeader(const modbus::tcp::decoder_views::Header& rsp_header_view);
     static void         displayReadBitsResult(const modbus::tcp::decoder_views::ReadCoilsReq& req_view, const modbus::tcp::decoder_views::ReadCoilsRsp& rsp_view);
+    static void         displayReadRegsResult(const modbus::tcp::decoder_views::ReadInputRegistersReq& req_view, const modbus::tcp::decoder_views::ReadInputRegistersRsp& rsp_view);
 };
 
 
@@ -45,13 +47,21 @@ void StandardOutputFormatter::displayReadDiscreteInputs(const std::vector<uint8_
 }
 
 
+void StandardOutputFormatter::displayReadInputRegisters(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const {
+    printMessage("rsp", rsp);
+
+    modbus::tcp::decoder_views::Header rsp_header_view(rsp);
+    printResponseHeader(rsp_header_view);
+
+    modbus::tcp::decoder_views::ReadInputRegistersReq req_view(req);
+    modbus::tcp::decoder_views::ReadInputRegistersRsp rsp_view(rsp);
+    displayReadRegsResult(req_view, rsp_view);
+}
+
+
 void StandardOutputFormatter::displayErrorResponse(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const {
-/*
-      if (rsp_header_view.isError()) {
-          modbus::tcp::decoder_views::ErrorResponse rsp(m_rx_buffer);
-          std::cout << "Device responded with error " << static_cast<unsigned>(rsp.getCode()) << std::endl;
-      }
-*/
+    modbus::tcp::decoder_views::ErrorResponse rsp_view(rsp);
+    std::cout << "Device responded with error " << static_cast<unsigned>(rsp_view.getCode()) << std::endl;
 }
 
 
@@ -86,6 +96,10 @@ void StandardOutputFormatter::displayReadBitsResult(const modbus::tcp::decoder_v
 
         std::cout << std::endl;
     }
+}
+
+
+void StandardOutputFormatter::displayReadRegsResult(const modbus::tcp::decoder_views::ReadInputRegistersReq& req_view, const modbus::tcp::decoder_views::ReadInputRegistersRsp& rsp_view) {
 }
 
 

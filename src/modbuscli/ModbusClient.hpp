@@ -13,6 +13,7 @@ public:
     inline void                         connect(const boost::asio::ip::tcp::endpoint& ep);
     inline void                         readCoils(const modbus::tcp::Address& startAddress, const modbus::tcp::NumBits& numCoils);
     inline void                         readDiscreteInputs(const modbus::tcp::Address& startAddress, const modbus::tcp::NumBits& numInputs);
+    inline void                         readInputRegisters(const modbus::tcp::Address& startAddress, const modbus::tcp::NumRegs& numRegs);
 
 private:
     OutputFormatter                    &m_outFormatter;
@@ -81,6 +82,24 @@ void ModbusClient::readDiscreteInputs(const modbus::tcp::Address& startAddress, 
         m_outFormatter.displayErrorResponse(m_rx_buffer, m_tx_buffer);
     else
         m_outFormatter.displayReadDiscreteInputs(m_tx_buffer, m_rx_buffer);
+}
+
+
+void ModbusClient::readInputRegisters(const modbus::tcp::Address& startAddress, const modbus::tcp::NumRegs& numRegs) {
+    modbus::tcp::Encoder encoder(m_unitId, m_transactionId);
+
+    encoder.encodeReadInputRegistersReq(startAddress, numRegs, m_tx_buffer);
+    m_outFormatter.displayOutgoing(m_tx_buffer);
+    boost::asio::write(m_socket, boost::asio::buffer(m_tx_buffer));
+
+    recvResponse();
+
+    modbus::tcp::decoder_views::Header rsp_header_view(m_rx_buffer);
+
+    if (rsp_header_view.isError())
+        m_outFormatter.displayErrorResponse(m_rx_buffer, m_tx_buffer);
+    else
+        m_outFormatter.displayReadInputRegisters(m_tx_buffer, m_rx_buffer);
 }
 
 

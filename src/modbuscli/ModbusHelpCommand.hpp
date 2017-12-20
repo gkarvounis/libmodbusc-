@@ -70,7 +70,7 @@ void ModbusHelpCommand::show_commands_list() const {
     std::cout << "List of available commands:" << std::endl;
 
     for (const auto& kv: m_commands)
-        std::cout << "    " << std::setw(10) << kv.first << " - " << kv.second->getShortHelpText() << std::endl;
+        std::cout << "    " << std::setw(15) << kv.first << " - " << kv.second->getShortHelpText() << std::endl;
 
     std::cout << "Type 'help <cmd>' to see details for each command." << std::endl;
 }
