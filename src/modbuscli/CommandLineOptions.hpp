@@ -7,6 +7,7 @@ struct CommandLineOptions {
     std::string     server_ip;
     uint16_t        server_port;
     uint16_t        unitId;
+    std::string     format;
 
     inline void     read(int argc, char** argv);
 };
@@ -20,7 +21,8 @@ void CommandLineOptions::read(int argc, char** argv) {
         ("help", "help")
         ("host,h", po::value<std::string>(&server_ip)->default_value(""), "device ip address")
         ("port,p", po::value<uint16_t>(&server_port)->default_value(502), "device port")
-        ("unitId,u", po::value<uint16_t>(&unitId)->default_value(1), "modbus device id");
+        ("unitId,u", po::value<uint16_t>(&unitId)->default_value(1), "modbus device id")
+        ("format,f", po::value<std::string>(&format)->default_value("std"), "output format (std or json)");
 
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, descr), vm);

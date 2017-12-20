@@ -1,4 +1,6 @@
 #include "OutputFormatter.hpp"
+#include "JsonOutputFormatter.hpp"
+#include "StandardOutputFormatter.hpp"
 #include "ModbusClient.hpp"
 #include "ModbusCommands.hpp"
 #include "CommandLineOptions.hpp"
@@ -20,8 +22,18 @@ int main(int argc, char** argv) {
               << "  Type 'help <cmd>' to see the usage of each command" << std::endl
               << std::endl;
 
-    StandardOutputFormatter out;
-    ModbusClient client(modbus::tcp::UnitId(options.unitId), out);
+    std::unique_ptr<OutputFormatter> out(nullptr);
+
+    if (options.format == "std")
+        out.reset(new StandardOutputFormatter());
+    else if (options.format == "json")
+        out.reset(new JsonOutputFormatter());
+    else {
+        std::cout << "Invalid value for format. Please specify 'std' or 'json'" << std::endl;
+        exit(1);
+    }
+
+    ModbusClient client(modbus::tcp::UnitId(options.unitId), *out);
     ModbusCommands commands;
 
     if (!options.server_ip.empty()) {
