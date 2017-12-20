@@ -52,7 +52,7 @@ class ReadBitsRsp {
 public:
                                 ReadBitsRsp(const std::vector<uint8_t>& rx_buffer);
     uint8_t                     getNumBits() const;
-    bool                        getBit(std::size_t pos);
+    bool                        getBit(std::size_t pos) const;
 private:
     const modbus::tcp::ReadCoilsRsp *m_read_rsp;
 };
@@ -288,7 +288,7 @@ uint8_t ReadBitsRsp<dummy>::getNumBits() const {
 
 
 template <int dummy>
-bool ReadBitsRsp<dummy>::getBit(std::size_t pos) {
+bool ReadBitsRsp<dummy>::getBit(std::size_t pos) const {
     std::size_t idx = pos / 8;
     std::size_t mask = 1 << (pos % 8);
 
