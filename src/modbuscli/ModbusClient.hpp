@@ -61,7 +61,7 @@ void ModbusClient::readCoils(const modbus::tcp::Address& startAddress, const mod
     modbus::tcp::decoder_views::Header rsp_header_view(m_rx_buffer);
 
     if (rsp_header_view.isError())
-        m_outFormatter.displayErrorResponse(m_rx_buffer, m_tx_buffer);
+        m_outFormatter.displayErrorResponse(m_tx_buffer, m_rx_buffer);
     else
         m_outFormatter.displayReadCoils(m_tx_buffer, m_rx_buffer);
 }
@@ -79,7 +79,7 @@ void ModbusClient::readDiscreteInputs(const modbus::tcp::Address& startAddress, 
     modbus::tcp::decoder_views::Header rsp_header_view(m_rx_buffer);
 
     if (rsp_header_view.isError())
-        m_outFormatter.displayErrorResponse(m_rx_buffer, m_tx_buffer);
+        m_outFormatter.displayErrorResponse(m_tx_buffer, m_rx_buffer);
     else
         m_outFormatter.displayReadDiscreteInputs(m_tx_buffer, m_rx_buffer);
 }
@@ -97,7 +97,7 @@ void ModbusClient::readInputRegisters(const modbus::tcp::Address& startAddress, 
     modbus::tcp::decoder_views::Header rsp_header_view(m_rx_buffer);
 
     if (rsp_header_view.isError())
-        m_outFormatter.displayErrorResponse(m_rx_buffer, m_tx_buffer);
+        m_outFormatter.displayErrorResponse(m_tx_buffer, m_rx_buffer);
     else
         m_outFormatter.displayReadInputRegisters(m_tx_buffer, m_rx_buffer);
 }
