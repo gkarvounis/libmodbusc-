@@ -18,6 +18,7 @@ private:
 
     uint16_t                        m_startAddress;
     uint16_t                        m_numCoils;
+    std::size_t                     m_interval;
 
     OptionsDescription              m_options;
     PositionalOptionsDescription    m_positional_options;
@@ -32,10 +33,12 @@ ReadCoilsCommand::ReadCoilsCommand() :
 
     m_options.add_options()
         ("startAddress,s", po::value<uint16_t>(&m_startAddress)->required(), "address of first coil to retrieve")
-        ("numCoils,n", po::value<uint16_t>(&m_numCoils)->required(), "number of coils to retrieve (up to 2000 coils)");
+        ("numCoils,n", po::value<uint16_t>(&m_numCoils)->required(), "number of coils to retrieve (up to 2000 coils)")
+        ("interval,i", po::value<std::size_t>(&m_interval)->default_value(0), "polling interval in msecs");
 
     m_positional_options.add("startAddress", 1);
     m_positional_options.add("numCoils", 1);
+    m_positional_options.add("interval", 1);
 }
 
 
@@ -46,7 +49,15 @@ void ReadCoilsCommand::exec(ModbusClient& client, const std::vector<std::string>
     po::store(po::command_line_parser(args).options(m_options).positional(m_positional_options).run(), vm);
     po::notify(vm);
 
-    client.readCoils(modbus::tcp::Address(m_startAddress), modbus::tcp::NumBits(m_numCoils));
+    if (m_interval == 0)
+        client.readCoils(modbus::tcp::Address(m_startAddress), modbus::tcp::NumBits(m_numCoils));
+    else {
+        while (true) {
+            client.readCoils(modbus::tcp::Address(m_startAddress), modbus::tcp::NumBits(m_numCoils));
+            std::cout << std::endl;
+            usleep(m_interval*1000);
+        }
+    }
 }
 
 
@@ -59,7 +70,8 @@ std::string ReadCoilsCommand::getHelpText() const {
     std::stringstream ss;
     ss << getShortHelpText() << std::endl
        << "Usage:" << std::endl
-       << "    readcoils <start_address> <num_coils>" << std::endl;
+       << "    readcoils <start_address> <num_coils> <interval=0>" << std::endl
+       << "Last parameter, if present and non-zero, is interpreted as polling interval in msecs" << std::endl;
     return ss.str();
 }
 
