@@ -11,6 +11,7 @@
 #include "ModbusConnectCommand.hpp"
 #include "ModbusHelpCommand.hpp"
 #include "ModbusExitCommand.hpp"
+#include "ModbusFormatCommand.hpp"
 
 
 class ModbusCommands {
@@ -31,6 +32,7 @@ ModbusCommands::ModbusCommands() :
 {
     m_commands["exit"] = std::make_shared<ModbusExitCommand>();
     m_commands["quit"] = m_commands["exit"];
+    m_commands["format"] = std::make_shared<ModbusFormatCommand>();
     m_commands["connect"] = std::make_shared<ModbusConnectCommand>();
     m_commands["readcoils"] = std::make_shared<ReadCoilsCommand>();
     m_commands["readinputs"] = std::make_shared<ReadDiscreteInputs>();

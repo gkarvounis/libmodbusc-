@@ -1,6 +1,7 @@
 #include "OutputFormatter.hpp"
 #include "JsonOutputFormatter.hpp"
 #include "StandardOutputFormatter.hpp"
+#include "VerboseStandardOutputFormatter.hpp"
 #include "ModbusClient.hpp"
 #include "ModbusCommands.hpp"
 #include "CommandLineOptions.hpp"
@@ -28,12 +29,14 @@ int main(int argc, char** argv) {
         out.reset(new StandardOutputFormatter());
     else if (options.format == "json")
         out.reset(new JsonOutputFormatter());
+    else if (options.format == "std_verbose")
+        out.reset(new VerboseStandardOutputFormatter());
     else {
         std::cout << "Invalid value for format. Please specify 'std' or 'json'" << std::endl;
         exit(1);
     }
 
-    ModbusClient client(modbus::tcp::UnitId(options.unitId), *out);
+    ModbusClient client(modbus::tcp::UnitId(options.unitId), std::move(out));
     ModbusCommands commands;
 
     if (!options.server_ip.empty()) {

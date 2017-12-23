@@ -7,7 +7,7 @@
 
 class ModbusClient {
 public:
-    inline                              ModbusClient(const modbus::tcp::UnitId& unitId, OutputFormatter& out);
+    inline                              ModbusClient(const modbus::tcp::UnitId& unitId, std::unique_ptr<OutputFormatter> out);
 
     inline void                         setTransactionId(const modbus::tcp::TransactionId& transactionId);
     inline void                         connect(const boost::asio::ip::tcp::endpoint& ep);
@@ -15,8 +15,10 @@ public:
     inline void                         readDiscreteInputs(const modbus::tcp::Address& startAddress, const modbus::tcp::NumBits& numInputs);
     inline void                         readInputRegisters(const modbus::tcp::Address& startAddress, const modbus::tcp::NumRegs& numRegs);
 
+    inline void                         setFormatter(std::unique_ptr<OutputFormatter> out);
+
 private:
-    OutputFormatter                    &m_outFormatter;
+    std::unique_ptr<OutputFormatter>    m_outFormatter;
     boost::asio::io_service             m_io;
     boost::asio::ip::tcp::socket        m_socket;
     modbus::tcp::UnitId                 m_unitId;
@@ -28,8 +30,8 @@ private:
 };
 
 
-ModbusClient::ModbusClient(const modbus::tcp::UnitId& unitId, OutputFormatter& out) :
-    m_outFormatter(out),
+ModbusClient::ModbusClient(const modbus::tcp::UnitId& unitId, std::unique_ptr<OutputFormatter> out) :
+    m_outFormatter(std::move(out)),
     m_io(),
     m_socket(m_io),
     m_unitId(unitId),
@@ -44,6 +46,11 @@ void ModbusClient::setTransactionId(const modbus::tcp::TransactionId& transactio
 }
 
 
+void ModbusClient::setFormatter(std::unique_ptr<OutputFormatter> out) {
+    m_outFormatter = std::move(out);
+}
+
+
 void ModbusClient::connect(const boost::asio::ip::tcp::endpoint& ep) {
     m_socket.connect(ep);
 }
@@ -53,7 +60,7 @@ void ModbusClient::readCoils(const modbus::tcp::Address& startAddress, const mod
     modbus::tcp::Encoder encoder(m_unitId, m_transactionId);
 
     encoder.encodeReadCoilsReq(startAddress, numCoils, m_tx_buffer);
-    m_outFormatter.displayOutgoing(m_tx_buffer);
+    m_outFormatter->displayOutgoing(m_tx_buffer);
     boost::asio::write(m_socket, boost::asio::buffer(m_tx_buffer));
 
     recvResponse();
@@ -61,9 +68,9 @@ void ModbusClient::readCoils(const modbus::tcp::Address& startAddress, const mod
     modbus::tcp::decoder_views::Header rsp_header_view(m_rx_buffer);
 
     if (rsp_header_view.isError())
-        m_outFormatter.displayErrorResponse(m_tx_buffer, m_rx_buffer);
+        m_outFormatter->displayErrorResponse(m_tx_buffer, m_rx_buffer);
     else
-        m_outFormatter.displayReadCoils(m_tx_buffer, m_rx_buffer);
+        m_outFormatter->displayReadCoils(m_tx_buffer, m_rx_buffer);
 }
 
 
@@ -71,7 +78,7 @@ void ModbusClient::readDiscreteInputs(const modbus::tcp::Address& startAddress, 
     modbus::tcp::Encoder encoder(m_unitId, m_transactionId);
 
     encoder.encodeReadDiscreteInputsReq(startAddress, numInputs, m_tx_buffer);
-    m_outFormatter.displayOutgoing(m_tx_buffer);
+    m_outFormatter->displayOutgoing(m_tx_buffer);
     boost::asio::write(m_socket, boost::asio::buffer(m_tx_buffer));
 
     recvResponse();
@@ -79,9 +86,9 @@ void ModbusClient::readDiscreteInputs(const modbus::tcp::Address& startAddress, 
     modbus::tcp::decoder_views::Header rsp_header_view(m_rx_buffer);
 
     if (rsp_header_view.isError())
-        m_outFormatter.displayErrorResponse(m_tx_buffer, m_rx_buffer);
+        m_outFormatter->displayErrorResponse(m_tx_buffer, m_rx_buffer);
     else
-        m_outFormatter.displayReadDiscreteInputs(m_tx_buffer, m_rx_buffer);
+        m_outFormatter->displayReadDiscreteInputs(m_tx_buffer, m_rx_buffer);
 }
 
 
@@ -89,7 +96,7 @@ void ModbusClient::readInputRegisters(const modbus::tcp::Address& startAddress, 
     modbus::tcp::Encoder encoder(m_unitId, m_transactionId);
 
     encoder.encodeReadInputRegistersReq(startAddress, numRegs, m_tx_buffer);
-    m_outFormatter.displayOutgoing(m_tx_buffer);
+    m_outFormatter->displayOutgoing(m_tx_buffer);
     boost::asio::write(m_socket, boost::asio::buffer(m_tx_buffer));
 
     recvResponse();
@@ -97,9 +104,9 @@ void ModbusClient::readInputRegisters(const modbus::tcp::Address& startAddress, 
     modbus::tcp::decoder_views::Header rsp_header_view(m_rx_buffer);
 
     if (rsp_header_view.isError())
-        m_outFormatter.displayErrorResponse(m_tx_buffer, m_rx_buffer);
+        m_outFormatter->displayErrorResponse(m_tx_buffer, m_rx_buffer);
     else
-        m_outFormatter.displayReadInputRegisters(m_tx_buffer, m_rx_buffer);
+        m_outFormatter->displayReadInputRegisters(m_tx_buffer, m_rx_buffer);
 }
 
 
