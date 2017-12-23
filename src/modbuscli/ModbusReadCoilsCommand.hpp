@@ -70,7 +70,7 @@ std::string ReadCoilsCommand::getHelpText() const {
     std::stringstream ss;
     ss << getShortHelpText() << std::endl
        << "Usage:" << std::endl
-       << "    readcoils <start_address> <num_coils> <interval=0>" << std::endl
+       << "    readcoils <start_address> <num_coils> [<interval>]" << std::endl
        << "Last parameter, if present and non-zero, is interpreted as polling interval in msecs" << std::endl;
     return ss.str();
 }
