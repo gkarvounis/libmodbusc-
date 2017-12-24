@@ -17,6 +17,7 @@ public:
     virtual void        displayReadCoils(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const = 0;
     virtual void        displayReadDiscreteInputs(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const = 0;
     virtual void        displayReadInputRegisters(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const = 0;
+    virtual void        displayReadHoldingRegisters(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const = 0;
 };
 
 #endif
