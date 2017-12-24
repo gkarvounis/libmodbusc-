@@ -27,6 +27,8 @@ private:
     std::vector<uint8_t>                m_tx_buffer;
     std::vector<uint8_t>                m_rx_buffer;
 
+    void                                readValues(std::function<void(modbus::tcp::Encoder&)> encodeFn, std::function<void(void)> displayFn);
+
     void                                recvResponse();
 };
 
@@ -58,63 +60,49 @@ void ModbusClient::connect(const boost::asio::ip::tcp::endpoint& ep) {
 
 
 void ModbusClient::readCoils(const modbus::tcp::Address& startAddress, const modbus::tcp::NumBits& numCoils) {
-    modbus::tcp::Encoder encoder(m_unitId, m_transactionId);
-
-    encoder.encodeReadCoilsReq(startAddress, numCoils, m_tx_buffer);
-    m_outFormatter->displayOutgoing(m_tx_buffer);
-    boost::asio::write(m_socket, boost::asio::buffer(m_tx_buffer));
-
-    recvResponse();
-
-    modbus::tcp::decoder_views::Header rsp_header_view(m_rx_buffer);
-
-    if (rsp_header_view.isError())
-        m_outFormatter->displayErrorResponse(m_tx_buffer, m_rx_buffer);
-    else
+    readValues([this, &startAddress, numCoils](modbus::tcp::Encoder& encoder) {
+        encoder.encodeReadCoilsReq(startAddress, numCoils, m_tx_buffer);
+    },
+    [this]() {
         m_outFormatter->displayReadCoils(m_tx_buffer, m_rx_buffer);
+    });
 }
 
 
 void ModbusClient::readDiscreteInputs(const modbus::tcp::Address& startAddress, const modbus::tcp::NumBits& numInputs) {
-    modbus::tcp::Encoder encoder(m_unitId, m_transactionId);
-
-    encoder.encodeReadDiscreteInputsReq(startAddress, numInputs, m_tx_buffer);
-    m_outFormatter->displayOutgoing(m_tx_buffer);
-    boost::asio::write(m_socket, boost::asio::buffer(m_tx_buffer));
-
-    recvResponse();
-
-    modbus::tcp::decoder_views::Header rsp_header_view(m_rx_buffer);
-
-    if (rsp_header_view.isError())
-        m_outFormatter->displayErrorResponse(m_tx_buffer, m_rx_buffer);
-    else
+    readValues([this, &startAddress, numInputs](modbus::tcp::Encoder& encoder) {
+        encoder.encodeReadDiscreteInputsReq(startAddress, numInputs, m_tx_buffer);
+    },
+    [this]() {
         m_outFormatter->displayReadDiscreteInputs(m_tx_buffer, m_rx_buffer);
+    });
 }
 
 
 void ModbusClient::readInputRegisters(const modbus::tcp::Address& startAddress, const modbus::tcp::NumRegs& numRegs) {
-    modbus::tcp::Encoder encoder(m_unitId, m_transactionId);
-
-    encoder.encodeReadInputRegistersReq(startAddress, numRegs, m_tx_buffer);
-    m_outFormatter->displayOutgoing(m_tx_buffer);
-    boost::asio::write(m_socket, boost::asio::buffer(m_tx_buffer));
-
-    recvResponse();
-
-    modbus::tcp::decoder_views::Header rsp_header_view(m_rx_buffer);
-
-    if (rsp_header_view.isError())
-        m_outFormatter->displayErrorResponse(m_tx_buffer, m_rx_buffer);
-    else
+    readValues([this, &startAddress, numRegs](modbus::tcp::Encoder& encoder) {
+        encoder.encodeReadInputRegistersReq(startAddress, numRegs, m_tx_buffer);
+    },
+    [this]() {
         m_outFormatter->displayReadInputRegisters(m_tx_buffer, m_rx_buffer);
+    });
 }
 
 
 void ModbusClient::readHoldingRegisters(const modbus::tcp::Address& startAddress, const modbus::tcp::NumRegs& numRegs) {
+    readValues([this, &startAddress, &numRegs](modbus::tcp::Encoder& encoder) {
+        encoder.encodeReadHoldingRegistersReq(startAddress, numRegs, m_tx_buffer);
+    },
+    [this]() {
+        m_outFormatter->displayReadHoldingRegisters(m_tx_buffer, m_rx_buffer);
+    });
+}
+
+
+void ModbusClient::readValues(std::function<void(modbus::tcp::Encoder&)> encodeFn, std::function<void(void)> displayFn) {
     modbus::tcp::Encoder encoder(m_unitId, m_transactionId);
 
-    encoder.encodeReadHoldingRegistersReq(startAddress, numRegs, m_tx_buffer);
+    encodeFn(encoder);
     m_outFormatter->displayOutgoing(m_tx_buffer);
     boost::asio::write(m_socket, boost::asio::buffer(m_tx_buffer));
 
@@ -125,7 +113,7 @@ void ModbusClient::readHoldingRegisters(const modbus::tcp::Address& startAddress
     if (rsp_header_view.isError())
         m_outFormatter->displayErrorResponse(m_tx_buffer, m_rx_buffer);
     else
-        m_outFormatter->displayReadHoldingRegisters(m_tx_buffer, m_rx_buffer);
+        displayFn();
 }
 
 
