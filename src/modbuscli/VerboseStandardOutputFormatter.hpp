@@ -13,6 +13,7 @@ public:
     inline void         displayReadHoldingRegisters(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const override;
 
     inline void         displayWriteCoil(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const override;
+    inline void         displayWriteRegister(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const override;
 
 private:
     static void         printBuffer(const std::string& prefix, const std::vector<uint8_t>& buffer);
@@ -105,6 +106,18 @@ void VerboseStandardOutputFormatter::displayWriteCoil(const std::vector<uint8_t>
 
     modbus::tcp::decoder_views::WriteSingleCoilRsp rsp_view(rsp);
     std::cout << " coil address: " << static_cast<std::size_t>(rsp_view.getAddress().get()) << std::endl
+              << "    new value: " << rsp_view.getValue() << std::endl;
+}
+
+
+void VerboseStandardOutputFormatter::displayWriteRegister(const std::vector<uint8_t>& /*req*/, const std::vector<uint8_t>& rsp) const {
+    printBuffer("          rsp", rsp);
+
+    modbus::tcp::decoder_views::Header rsp_header_view(rsp);
+    printResponseHeader(rsp_header_view);
+
+    modbus::tcp::decoder_views::WriteSingleRegisterRsp rsp_view(rsp);
+    std::cout << "  reg address: " << static_cast<std::size_t>(rsp_view.getAddress().get()) << std::endl
               << "    new value: " << rsp_view.getValue() << std::endl;
 }
 

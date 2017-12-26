@@ -17,6 +17,7 @@ public:
     inline void                         readHoldingRegisters(const modbus::tcp::Address& startAddress, const modbus::tcp::NumRegs& numRegs);
 
     inline void                         writeCoil(const modbus::tcp::Address& address, bool value);
+    inline void                         writeRegister(const modbus::tcp::Address& address, uint16_t value);
 
     inline void                         setFormatter(std::unique_ptr<OutputFormatter> out);
 
@@ -107,6 +108,16 @@ void ModbusClient::writeCoil(const modbus::tcp::Address& address, bool value) {
     },
     [this]() {
         m_outFormatter->displayWriteCoil(m_tx_buffer, m_rx_buffer);
+    });
+}
+
+
+void ModbusClient::writeRegister(const modbus::tcp::Address& address, uint16_t value) {
+    executeModbusOp([this, &address, &value](modbus::tcp::Encoder& encoder) {
+        encoder.encodeWriteSingleRegisterReq(address, value, m_tx_buffer);
+    },
+    [this]() {
+        m_outFormatter->displayWriteRegister(m_tx_buffer, m_rx_buffer);
     });
 }
 

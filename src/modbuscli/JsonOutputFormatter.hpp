@@ -11,6 +11,7 @@ public:
     void                displayReadInputRegisters(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const override;
     void                displayReadHoldingRegisters(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const override;
     void                displayWriteCoil(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const override;
+    void                displayWriteRegister(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const override;
 };
 
 
@@ -37,6 +38,9 @@ void JsonOutputFormatter::displayReadHoldingRegisters(const std::vector<uint8_t>
 }
 
 void JsonOutputFormatter::displayWriteCoil(const std::vector<uint8_t>& /*req*/, const std::vector<uint8_t>& /*rsp*/) const {
+}
+
+void JsonOutputFormatter::displayWriteRegister(const std::vector<uint8_t>& /*req*/, const std::vector<uint8_t>& /*rsp*/) const {
 }
 
 #endif
