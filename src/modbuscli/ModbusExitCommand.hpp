@@ -26,7 +26,7 @@ ModbusExitCommand::ModbusExitCommand() :
 }
 
 
-void ModbusExitCommand::exec(ModbusClient& client, const std::vector<std::string>& args) {
+void ModbusExitCommand::exec(ModbusClient& /*client*/, const std::vector<std::string>& /*args*/) {
     throw ModbusCliExit();
 }
 

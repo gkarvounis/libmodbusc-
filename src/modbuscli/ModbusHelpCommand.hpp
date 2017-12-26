@@ -52,7 +52,7 @@ ModbusHelpCommand::ModbusHelpCommand(const ModbusCommandsMap& commands) :
 }
 
 
-void ModbusHelpCommand::exec(ModbusClient& client, const std::vector<std::string>& args) {
+void ModbusHelpCommand::exec(ModbusClient& /*client*/, const std::vector<std::string>& args) {
     namespace po = boost::program_options;
 
     po::variables_map vm;

@@ -97,7 +97,7 @@ void VerboseStandardOutputFormatter::displayReadRegsResult(const std::vector<uin
 }
 
 
-void VerboseStandardOutputFormatter::displayWriteCoil(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const {
+void VerboseStandardOutputFormatter::displayWriteCoil(const std::vector<uint8_t>& /*req*/, const std::vector<uint8_t>& rsp) const {
     printBuffer("          rsp", rsp);
 
     modbus::tcp::decoder_views::Header rsp_header_view(rsp);
@@ -109,7 +109,7 @@ void VerboseStandardOutputFormatter::displayWriteCoil(const std::vector<uint8_t>
 }
 
 
-void VerboseStandardOutputFormatter::displayErrorResponse(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const {
+void VerboseStandardOutputFormatter::displayErrorResponse(const std::vector<uint8_t>& /*req*/, const std::vector<uint8_t>& rsp) const {
     printBuffer("          rsp", rsp);
 
     modbus::tcp::decoder_views::Header rsp_header_view(rsp);

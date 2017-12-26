@@ -14,29 +14,29 @@ public:
 };
 
 
-void JsonOutputFormatter::displayOutgoing(const std::vector<uint8_t>& req) const {
+void JsonOutputFormatter::displayOutgoing(const std::vector<uint8_t>& /*req*/) const {
 }
 
 
-void JsonOutputFormatter::displayErrorResponse(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const {
+void JsonOutputFormatter::displayErrorResponse(const std::vector<uint8_t>& /*req*/, const std::vector<uint8_t>& /*rsp*/) const {
 }
 
 
-void JsonOutputFormatter::displayReadCoils(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const {
+void JsonOutputFormatter::displayReadCoils(const std::vector<uint8_t>& /*req*/, const std::vector<uint8_t>& /*rsp*/) const {
 }
 
 
-void JsonOutputFormatter::displayReadDiscreteInputs(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const {
+void JsonOutputFormatter::displayReadDiscreteInputs(const std::vector<uint8_t>& /*req*/, const std::vector<uint8_t>& /*rsp*/) const {
 }
 
 
-void JsonOutputFormatter::displayReadInputRegisters(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const {
+void JsonOutputFormatter::displayReadInputRegisters(const std::vector<uint8_t>& /*req*/, const std::vector<uint8_t>& /*rsp*/) const {
 }
 
-void JsonOutputFormatter::displayReadHoldingRegisters(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const {
+void JsonOutputFormatter::displayReadHoldingRegisters(const std::vector<uint8_t>& /*req*/, const std::vector<uint8_t>& /*rsp*/) const {
 }
 
-void JsonOutputFormatter::displayWriteCoil(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const {
+void JsonOutputFormatter::displayWriteCoil(const std::vector<uint8_t>& /*req*/, const std::vector<uint8_t>& /*rsp*/) const {
 }
 
 #endif
