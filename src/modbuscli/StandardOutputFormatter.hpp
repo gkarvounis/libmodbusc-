@@ -10,6 +10,7 @@ public:
     void                displayReadDiscreteInputs(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const override;
     void                displayReadInputRegisters(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const override;
     void                displayReadHoldingRegisters(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const override;
+    void                displayWriteCoil(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const override;
 };
 
 
@@ -33,6 +34,9 @@ void StandardOutputFormatter::displayReadInputRegisters(const std::vector<uint8_
 }
 
 void StandardOutputFormatter::displayReadHoldingRegisters(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const {
+}
+
+void StandardOutputFormatter::displayWriteCoil(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const {
 }
 
 #endif

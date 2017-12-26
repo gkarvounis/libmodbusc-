@@ -16,6 +16,8 @@ public:
     inline void                         readInputRegisters(const modbus::tcp::Address& startAddress, const modbus::tcp::NumRegs& numRegs);
     inline void                         readHoldingRegisters(const modbus::tcp::Address& startAddress, const modbus::tcp::NumRegs& numRegs);
 
+    inline void                         writeCoil(const modbus::tcp::Address& address, bool value);
+
     inline void                         setFormatter(std::unique_ptr<OutputFormatter> out);
 
 private:
@@ -27,7 +29,7 @@ private:
     std::vector<uint8_t>                m_tx_buffer;
     std::vector<uint8_t>                m_rx_buffer;
 
-    void                                readValues(std::function<void(modbus::tcp::Encoder&)> encodeFn, std::function<void(void)> displayFn);
+    void                                executeModbusOp(std::function<void(modbus::tcp::Encoder&)> encodeFn, std::function<void(void)> displayFn);
 
     void                                recvResponse();
 };
@@ -60,7 +62,7 @@ void ModbusClient::connect(const boost::asio::ip::tcp::endpoint& ep) {
 
 
 void ModbusClient::readCoils(const modbus::tcp::Address& startAddress, const modbus::tcp::NumBits& numCoils) {
-    readValues([this, &startAddress, numCoils](modbus::tcp::Encoder& encoder) {
+    executeModbusOp([this, &startAddress, numCoils](modbus::tcp::Encoder& encoder) {
         encoder.encodeReadCoilsReq(startAddress, numCoils, m_tx_buffer);
     },
     [this]() {
@@ -70,7 +72,7 @@ void ModbusClient::readCoils(const modbus::tcp::Address& startAddress, const mod
 
 
 void ModbusClient::readDiscreteInputs(const modbus::tcp::Address& startAddress, const modbus::tcp::NumBits& numInputs) {
-    readValues([this, &startAddress, numInputs](modbus::tcp::Encoder& encoder) {
+    executeModbusOp([this, &startAddress, numInputs](modbus::tcp::Encoder& encoder) {
         encoder.encodeReadDiscreteInputsReq(startAddress, numInputs, m_tx_buffer);
     },
     [this]() {
@@ -80,7 +82,7 @@ void ModbusClient::readDiscreteInputs(const modbus::tcp::Address& startAddress, 
 
 
 void ModbusClient::readInputRegisters(const modbus::tcp::Address& startAddress, const modbus::tcp::NumRegs& numRegs) {
-    readValues([this, &startAddress, numRegs](modbus::tcp::Encoder& encoder) {
+    executeModbusOp([this, &startAddress, numRegs](modbus::tcp::Encoder& encoder) {
         encoder.encodeReadInputRegistersReq(startAddress, numRegs, m_tx_buffer);
     },
     [this]() {
@@ -90,7 +92,7 @@ void ModbusClient::readInputRegisters(const modbus::tcp::Address& startAddress, 
 
 
 void ModbusClient::readHoldingRegisters(const modbus::tcp::Address& startAddress, const modbus::tcp::NumRegs& numRegs) {
-    readValues([this, &startAddress, &numRegs](modbus::tcp::Encoder& encoder) {
+    executeModbusOp([this, &startAddress, &numRegs](modbus::tcp::Encoder& encoder) {
         encoder.encodeReadHoldingRegistersReq(startAddress, numRegs, m_tx_buffer);
     },
     [this]() {
@@ -99,7 +101,17 @@ void ModbusClient::readHoldingRegisters(const modbus::tcp::Address& startAddress
 }
 
 
-void ModbusClient::readValues(std::function<void(modbus::tcp::Encoder&)> encodeFn, std::function<void(void)> displayFn) {
+void ModbusClient::writeCoil(const modbus::tcp::Address& address, bool value) {
+    executeModbusOp([this, &address, &value](modbus::tcp::Encoder& encoder) {
+        encoder.encodeWriteSingleCoilReq(address, value, m_tx_buffer);
+    },
+    [this]() {
+        m_outFormatter->displayWriteCoil(m_tx_buffer, m_rx_buffer);
+    });
+}
+
+
+void ModbusClient::executeModbusOp(std::function<void(modbus::tcp::Encoder&)> encodeFn, std::function<void(void)> displayFn) {
     modbus::tcp::Encoder encoder(m_unitId, m_transactionId);
 
     encodeFn(encoder);

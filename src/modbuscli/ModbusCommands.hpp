@@ -9,6 +9,7 @@
 #include "ModbusReadDiscreteInputs.hpp"
 #include "ModbusReadInputRegistersCommand.hpp"
 #include "ModbusReadHoldingRegistersCommand.hpp"
+#include "ModbusWriteCoilCommand.hpp"
 #include "ModbusConnectCommand.hpp"
 #include "ModbusHelpCommand.hpp"
 #include "ModbusExitCommand.hpp"
@@ -39,6 +40,7 @@ ModbusCommands::ModbusCommands() :
     m_commands["readinputs"] = std::make_shared<ReadDiscreteInputs>();
     m_commands["readinputregs"] = std::make_shared<ModbusReadInputRegistersCommand>();
     m_commands["readholdingregs"] = std::make_shared<ModbusReadHoldingRegistersCommand>();
+    m_commands["writecoil"] = std::make_shared<ModbusWriteCoilCommand>();
 
     auto help_cmd = std::make_shared<ModbusHelpCommand>(m_commands);
     m_commands["help"] = help_cmd;
