@@ -24,7 +24,7 @@ ModbusWriteRegisterCommand::ModbusWriteRegisterCommand() {
     namespace po = boost::program_options;
 
     m_options.add_options()
-        ("address,a", po::value<uint16_t>(&m_address)->required(), "address of target register");
+        ("address,a", po::value<uint16_t>(&m_address)->required(), "address of target register")
         ("value,v", po::value<uint16_t>(&m_value)->required(), "new value for target register");
 
     m_positional_options.add("address", 1);
