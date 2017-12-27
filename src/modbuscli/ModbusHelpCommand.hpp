@@ -68,6 +68,7 @@ void ModbusHelpCommand::exec(ModbusClient& /*client*/, const std::vector<std::st
 
 void ModbusHelpCommand::show_commands_list() const {
     std::cout << "List of available commands:" << std::endl;
+    std::cout << std::setfill(' ');
 
     for (const auto& kv: m_commands)
         std::cout << "    " << std::setw(15) << kv.first << " - " << kv.second->getShortHelpText() << std::endl;
