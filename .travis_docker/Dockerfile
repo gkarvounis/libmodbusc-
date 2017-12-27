@@ -6,5 +6,6 @@ CMD cd /root/libmodbusc++/ && \
     test/encoder/testencoder && \
     test/decoder/testdecoder && \
     test/serverDevice/test_server_device && \
-    test/server/test_server
+    test/server/test_server && \
+    test/modbuscli/testmodbuscli
 
