@@ -45,9 +45,20 @@ ReadCoilsCommand::ReadCoilsCommand() :
 void ReadCoilsCommand::exec(ModbusClient& client, const std::vector<std::string>& args) {
     namespace po = boost::program_options;
 
-    po::variables_map vm;
-    po::store(po::command_line_parser(args).options(m_options).positional(m_positional_options).run(), vm);
-    po::notify(vm);
+    try {
+        po::variables_map vm;
+        po::store(po::command_line_parser(args).options(m_options).positional(m_positional_options).run(), vm);
+        po::notify(vm);
+    } catch(const boost::program_options::invalid_option_value& ex) {
+        if (ex.get_option_name() == "--startAddress")
+            std::cout << "Invalid value for first argument. Please provide a valid numeric <start address>" << std::endl;
+        else if (ex.get_option_name() == "--numCoils")
+            std::cout << "Invalid value for second argument. Please provide a valid numeric <num coils>" << std::endl;
+        else
+            std::cout << "Invalid value for third argument. Please provide a valid numeric <interval>" << std::endl;
+
+        return;
+    }
 
     if (m_interval == 0)
         client.readCoils(modbus::tcp::Address(m_startAddress), modbus::tcp::NumBits(m_numCoils));
