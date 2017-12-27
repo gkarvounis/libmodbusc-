@@ -105,7 +105,9 @@ void VerboseStandardOutputFormatter::displayWriteCoil(const std::vector<uint8_t>
     printResponseHeader(rsp_header_view);
 
     modbus::tcp::decoder_views::WriteSingleCoilRsp rsp_view(rsp);
-    std::cout << " coil address: " << static_cast<std::size_t>(rsp_view.getAddress().get()) << std::endl
+    std::size_t address = rsp_view.getAddress().get();
+
+    std::cout << " coil address: " << "0x" << std::hex << std::setfill('0') << std::setw(4) << address << std::endl
               << "    new value: " << rsp_view.getValue() << std::endl;
 }
 
@@ -119,8 +121,8 @@ void VerboseStandardOutputFormatter::displayWriteRegister(const std::vector<uint
     modbus::tcp::decoder_views::WriteSingleRegisterRsp rsp_view(rsp);
     std::size_t address = rsp_view.getAddress().get();
 
-    std::cout << "  reg address: " << std::hex << "0x" << address << std::dec << " (" << address << ")" << std::endl
-              << "    new value: " << std::hex << "0x" << rsp_view.getValue() << " (" << std::dec << rsp_view.getValue() << ")"  << std::endl;
+    std::cout << "  reg address: " << "0x" << std::hex << std::setfill('0') << std::setw(4) << address << std::dec << " (" << address << ")" << std::endl
+              << "    new value: " << "0x" << std::hex << std::setfill('0') << std::setw(4) << rsp_view.getValue() << " (" << std::dec << rsp_view.getValue() << ")"  << std::endl;
 }
 
 
@@ -146,9 +148,9 @@ void VerboseStandardOutputFormatter::printBuffer(const std::string& prefix, cons
 
 
 void VerboseStandardOutputFormatter::printResponseHeader(const modbus::tcp::decoder_views::Header& rsp_header_view) {
-    std::cout << "       unitId: " << static_cast<unsigned>(rsp_header_view.getUnitId().get()) << std::endl
-              << "function code: " << static_cast<unsigned>(rsp_header_view.getFunctionCode()) << std::endl
-              << "transactionId: " << rsp_header_view.getTransactionId().get() << std::endl;
+    std::cout << "       unitId: " << "0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<unsigned>(rsp_header_view.getUnitId().get()) << std::endl
+              << "function code: " << "0x" << std::hex << std::setfill('0') << std::setw(2) << static_cast<unsigned>(rsp_header_view.getFunctionCode()) << std::endl
+              << "transactionId: " << "0x" << std::hex << std::setfill('0') << std::setw(4) <<rsp_header_view.getTransactionId().get() << std::endl;
 }
 
 
