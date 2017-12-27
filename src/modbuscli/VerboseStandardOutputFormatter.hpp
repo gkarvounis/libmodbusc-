@@ -117,8 +117,10 @@ void VerboseStandardOutputFormatter::displayWriteRegister(const std::vector<uint
     printResponseHeader(rsp_header_view);
 
     modbus::tcp::decoder_views::WriteSingleRegisterRsp rsp_view(rsp);
-    std::cout << "  reg address: " << static_cast<std::size_t>(rsp_view.getAddress().get()) << std::endl
-              << "    new value: " << rsp_view.getValue() << std::endl;
+    std::size_t address = rsp_view.getAddress().get();
+
+    std::cout << "  reg address: " << std::hex << "0x" << address << std::dec << " (" << address << ")" << std::endl
+              << "    new value: " << std::hex << "0x" << rsp_view.getValue() << " (" << std::dec << rsp_view.getValue() << ")"  << std::endl;
 }
 
 
