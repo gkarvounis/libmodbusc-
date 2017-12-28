@@ -1,7 +1,6 @@
 #ifndef MODBUS_COMMAND_HPP
 #define MODBUS_COMMAND_HPP
 
-#include "ModbusClient.hpp"
 
 #include <boost/program_options.hpp>
 #include <vector>
