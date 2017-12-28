@@ -58,6 +58,15 @@ void ReadCoilsCommand::exec(ModbusClient& client, const std::vector<std::string>
             std::cout << "Invalid value for third argument. Please provide a valid numeric <interval>" << std::endl;
 
         return;
+    } catch (const boost::program_options::required_option& ex) {
+         if (ex.get_option_name() == "--startAddress")
+            std::cout << "Please specify <start address>" << std::endl;
+        else if (ex.get_option_name() == "--numCoils")
+            std::cout << "Please specify <num coils>" << std::endl;
+        else
+            std::cout << "[" << ex.what() << "]" << std::endl;
+
+        return;
     }
 
     if (m_interval == 0)
