@@ -13,54 +13,56 @@
 
 #include <thread>
 
-TEST_CASE("readcoils - normal case", "[cli]") {
-    class MyServer {
-    public:
-        MyServer(boost::asio::io_service& io) :
-            m_io(io)
-        {}
-
-        void start() {
-            boost::asio::ip::tcp::acceptor acceptor(m_io);
-            acceptor.open(boost::asio::ip::tcp::v4());
-            acceptor.set_option(boost::asio::socket_base::reuse_address(true));
-            acceptor.bind(boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"), 8502));
-            acceptor.listen();
-
-            std::cout << "waiting for connection" << std::endl;
-            boost::asio::ip::tcp::socket client_socket(m_io);
-            acceptor.accept(client_socket);
-            std::cout << "received connection... waiting 12 bytes" << std::endl;
-
-            std::vector<uint8_t> rx_buffer;
-            rx_buffer.resize(12);
-            boost::asio::read(client_socket, boost::asio::buffer(rx_buffer));
-            std::cout << "received 12 bytes" << std::endl;
-            REQUIRE(rx_buffer == (std::vector<uint8_t>{0x00, 0x01, 0x00, 0x00, 0x00, 0x06, 0xab, 0x01, 0x00, 0x14, 0x00, 0x08}));
-
-            std::vector<uint8_t> tx_buffer{0x00, 0x01, 0x00, 0x00, 0x00, 0x04, 0xab, 0x01, 0x01, 0b01001100};
-            boost::asio::write(client_socket, boost::asio::buffer(tx_buffer));
-        }
-
-    private:
-        boost::asio::io_service &m_io;
-    };
-
-    // start dummy server
+// Simple modbus server that receives a request and sends a response
+void dummyModbusServer(std::vector<uint8_t>& request, const std::vector<uint8_t>& response) {
     boost::asio::io_service io;
-    MyServer server(io);
-    std::thread t([&server]() { server.start(); });
+    boost::asio::ip::tcp::acceptor acceptor(io);
+    acceptor.open(boost::asio::ip::tcp::v4());
+    acceptor.set_option(boost::asio::socket_base::reuse_address(true));
+    acceptor.bind(boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"), 8502));
+    acceptor.listen();
+
+    std::cout << "waiting for connection" << std::endl;
+    boost::asio::ip::tcp::socket client_socket(io);
+    acceptor.accept(client_socket);
+    std::cout << "received connection... waiting " << sizeof(modbus::tcp::Header) << " bytes" << std::endl;
+
+    request.resize(sizeof(modbus::tcp::Header));
+    boost::asio::read(client_socket, boost::asio::buffer(request));
+
+    modbus::tcp::decoder_views::Header req_header_view(request);
+    std::size_t payload_size = req_header_view.getLength() - 2;
+    std::cout << "received modbus header. Waiting for " << payload_size << " bytes" << std::endl;
+
+    request.resize(sizeof(modbus::tcp::Header) + payload_size);
+    boost::asio::read(client_socket, boost::asio::buffer(request.data() + sizeof(modbus::tcp::Header), payload_size));
+    std::cout << "received payload" << std::endl;
+
+    boost::asio::write(client_socket, boost::asio::buffer(response));
+    std::cout << "sent response" << std::endl;
+}
+
+
+
+TEST_CASE("readcoils - normal case", "[cli]") {
+    // start dummy server
+    std::thread t([]() { 
+        std::vector<uint8_t> request;
+        std::vector<uint8_t> response{0x00, 0x01, 0x00, 0x00, 0x00, 0x04, 0xab, 0x01, 0x01, 0b01001100};
+        dummyModbusServer(request, response);
+       
+        REQUIRE(request == (std::vector<uint8_t>{0x00, 0x01, 0x00, 0x00, 0x00, 0x06, 0xab, 0x01, 0x00, 0x14, 0x00, 0x08}));
+    });
     usleep(5000);
 
 
     // Create a ModbusClient that sends verbose output to a stringstream
     std::stringstream out;
-    ReadCoilsCommand cmd;
-    std::unique_ptr<OutputFormatter> fmt(new VerboseStandardOutputFormatter(out));
-    ModbusClient client(modbus::tcp::UnitId(0xab), std::move(fmt));
+    ModbusClient client(modbus::tcp::UnitId(0xab), std::unique_ptr<OutputFormatter>(new VerboseStandardOutputFormatter(out)));
 
     // Connect to dummy server and execute readcoils command
     client.connect(boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"), 8502));
+    ReadCoilsCommand cmd;
     cmd.exec(client, std::vector<std::string>{"--startAddress", "20", "--numCoils", "8"});
 
     // Dummy server is done now
