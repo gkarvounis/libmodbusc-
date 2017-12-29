@@ -26,11 +26,11 @@ int main(int argc, char** argv) {
     std::unique_ptr<OutputFormatter> out(nullptr);
 
     if (options.format == "std")
-        out.reset(new StandardOutputFormatter());
+        out.reset(new StandardOutputFormatter(std::cout));
     else if (options.format == "json")
-        out.reset(new JsonOutputFormatter());
+        out.reset(new JsonOutputFormatter(std::cout));
     else if (options.format == "std_verbose")
-        out.reset(new VerboseStandardOutputFormatter());
+        out.reset(new VerboseStandardOutputFormatter(std::cout));
     else {
         std::cout << "Invalid value for format. Please specify 'std' or 'json'" << std::endl;
         exit(1);

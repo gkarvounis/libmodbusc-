@@ -39,11 +39,11 @@ void ModbusFormatCommand::exec(ModbusClient& client, const std::vector<std::stri
     po::notify(vm);
 
     if (m_format == "std") {
-        client.setFormatter(std::unique_ptr<OutputFormatter>(new StandardOutputFormatter()));
+        client.setFormatter(std::unique_ptr<OutputFormatter>(new StandardOutputFormatter(std::cout)));
     } else if (m_format == "json") {
-        client.setFormatter(std::unique_ptr<OutputFormatter>(new JsonOutputFormatter()));
+        client.setFormatter(std::unique_ptr<OutputFormatter>(new JsonOutputFormatter(std::cout)));
     } else if (m_format == "std_verbose") {
-        client.setFormatter(std::unique_ptr<OutputFormatter>(new VerboseStandardOutputFormatter()));
+        client.setFormatter(std::unique_ptr<OutputFormatter>(new VerboseStandardOutputFormatter(std::cout)));
     } else {
         std::cout << "Invalid format '" << m_format <<"' specified. Valid options are std, json or std_verbose" << std::endl;
     }

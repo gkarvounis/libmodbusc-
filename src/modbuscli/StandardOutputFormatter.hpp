@@ -4,43 +4,49 @@
 
 class StandardOutputFormatter : public OutputFormatter {
 public:
-    void                displayOutgoing(const std::vector<uint8_t>& req) const override;
-    void                displayErrorResponse(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const override;
-    void                displayReadCoils(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const override;
-    void                displayReadDiscreteInputs(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const override;
-    void                displayReadInputRegisters(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const override;
-    void                displayReadHoldingRegisters(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const override;
-    void                displayWriteCoil(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const override;
-    void                displayWriteRegister(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) const override;
+                        StandardOutputFormatter(std::ostream& s);
+
+    void                displayOutgoing(const std::vector<uint8_t>& req) override;
+    void                displayErrorResponse(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) override;
+    void                displayReadCoils(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) override;
+    void                displayReadDiscreteInputs(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) override;
+    void                displayReadInputRegisters(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) override;
+    void                displayReadHoldingRegisters(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) override;
+    void                displayWriteCoil(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) override;
+    void                displayWriteRegister(const std::vector<uint8_t>& req, const std::vector<uint8_t>& rsp) override;
 };
 
 
-void StandardOutputFormatter::displayOutgoing(const std::vector<uint8_t>& /*req*/) const {
+StandardOutputFormatter::StandardOutputFormatter(std::ostream& s) :
+    OutputFormatter(s)
+{}
+
+void StandardOutputFormatter::displayOutgoing(const std::vector<uint8_t>& /*req*/) {
 }
 
 
-void StandardOutputFormatter::displayErrorResponse(const std::vector<uint8_t>& /*req*/, const std::vector<uint8_t>& /*rsp*/) const {
+void StandardOutputFormatter::displayErrorResponse(const std::vector<uint8_t>& /*req*/, const std::vector<uint8_t>& /*rsp*/) {
 }
 
 
-void StandardOutputFormatter::displayReadCoils(const std::vector<uint8_t>& /*req*/, const std::vector<uint8_t>& /*rsp*/) const {
+void StandardOutputFormatter::displayReadCoils(const std::vector<uint8_t>& /*req*/, const std::vector<uint8_t>& /*rsp*/) {
 }
 
 
-void StandardOutputFormatter::displayReadDiscreteInputs(const std::vector<uint8_t>& /*req*/, const std::vector<uint8_t>& /*rsp*/) const {
+void StandardOutputFormatter::displayReadDiscreteInputs(const std::vector<uint8_t>& /*req*/, const std::vector<uint8_t>& /*rsp*/) {
 }
 
 
-void StandardOutputFormatter::displayReadInputRegisters(const std::vector<uint8_t>& /*req*/, const std::vector<uint8_t>& /*rsp*/) const {
+void StandardOutputFormatter::displayReadInputRegisters(const std::vector<uint8_t>& /*req*/, const std::vector<uint8_t>& /*rsp*/) {
 }
 
-void StandardOutputFormatter::displayReadHoldingRegisters(const std::vector<uint8_t>& /*req*/, const std::vector<uint8_t>& /*rsp*/) const {
+void StandardOutputFormatter::displayReadHoldingRegisters(const std::vector<uint8_t>& /*req*/, const std::vector<uint8_t>& /*rsp*/) {
 }
 
-void StandardOutputFormatter::displayWriteCoil(const std::vector<uint8_t>& /*req*/, const std::vector<uint8_t>& /*rsp*/) const {
+void StandardOutputFormatter::displayWriteCoil(const std::vector<uint8_t>& /*req*/, const std::vector<uint8_t>& /*rsp*/) {
 }
 
-void StandardOutputFormatter::displayWriteRegister(const std::vector<uint8_t>& /*req*/, const std::vector<uint8_t>& /*rsp*/) const {
+void StandardOutputFormatter::displayWriteRegister(const std::vector<uint8_t>& /*req*/, const std::vector<uint8_t>& /*rsp*/) {
 }
 
 #endif
