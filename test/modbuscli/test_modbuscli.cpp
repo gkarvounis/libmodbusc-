@@ -13,10 +13,7 @@
 
 #include <thread>
 
-TEST_CASE("readcoils", "[cli]") {
-    ReadCoilsCommand cmd;
-    std::unique_ptr<OutputFormatter> fmt(new VerboseStandardOutputFormatter());
-
+TEST_CASE("readcoils - normal case", "[cli]") {
     class MyServer {
     public:
         MyServer(boost::asio::io_service& io) :
@@ -41,7 +38,7 @@ TEST_CASE("readcoils", "[cli]") {
             std::cout << "received 12 bytes" << std::endl;
             REQUIRE(rx_buffer == (std::vector<uint8_t>{0x00, 0x01, 0x00, 0x00, 0x00, 0x06, 0xab, 0x01, 0x00, 0x14, 0x00, 0x08}));
 
-            std::vector<uint8_t> tx_buffer{0x00, 0x01, 0x00, 0x00, 0x00, 0x04, 0x01, 0x01, 0x01, 0b01001100};
+            std::vector<uint8_t> tx_buffer{0x00, 0x01, 0x00, 0x00, 0x00, 0x04, 0xab, 0x01, 0x01, 0b01001100};
             boost::asio::write(client_socket, boost::asio::buffer(tx_buffer));
         }
 
@@ -49,17 +46,36 @@ TEST_CASE("readcoils", "[cli]") {
         boost::asio::io_service &m_io;
     };
 
-
+    // start dummy server
     boost::asio::io_service io;
     MyServer server(io);
     std::thread t([&server]() { server.start(); });
     usleep(5000);
 
-    ModbusClient client(modbus::tcp::UnitId(0xab), std::move(fmt));
-    client.connect(boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"), 8502));
 
+    // Create a ModbusClient that sends verbose output to a stringstream
+    std::stringstream out;
+    ReadCoilsCommand cmd;
+    std::unique_ptr<OutputFormatter> fmt(new VerboseStandardOutputFormatter(out));
+    ModbusClient client(modbus::tcp::UnitId(0xab), std::move(fmt));
+
+    // Connect to dummy server and execute readcoils command
+    client.connect(boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"), 8502));
     cmd.exec(client, std::vector<std::string>{"--startAddress", "20", "--numCoils", "8"});
 
+    // Dummy server is done now
     t.join();
+
+    // Make sure that output printed by the command is correct
+    std::stringstream expected_out;
+    expected_out <<
+           "          req: [00 01 00 00 00 06 ab 01 00 14 00 08 ]" << std::endl
+        << "          rsp: [00 01 00 00 00 04 ab 01 01 4c ]" << std::endl
+        << "       unitId: 0xab" << std::endl
+        << "function code: 0x01" << std::endl
+        << "transactionId: 0x0001" << std::endl
+        << "         bits: 0 0 1 1 0 0 1 0 " << std::endl;
+
+    REQUIRE(expected_out.str() == out.str());
 }
 
