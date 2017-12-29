@@ -69,5 +69,43 @@ TEST_CASE("readcoils - normal case", "[cli]") {
     REQUIRE(expected_out.str() == out.str());
 }
 
+
+TEST_CASE("readcoils - non existing coils", "[cli]") {
+    // start dummy server
+    std::thread t([]() { 
+        std::vector<uint8_t> request;
+        std::vector<uint8_t> response{0x00, 0x01, 0x00, 0x00, 0x00, 0x03, 0xab, 0x81, 0x01};
+        dummyModbusServer(request, response);
+       
+        REQUIRE(request == (std::vector<uint8_t>{0x00, 0x01, 0x00, 0x00, 0x00, 0x06, 0xab, 0x01, 0x00, 0x14, 0x00, 0x08}));
+    });
+    usleep(5000);
+
+    // Create a ModbusClient that sends verbose output to a stringstream
+    std::stringstream out;
+    ModbusClient client(modbus::tcp::UnitId(0xab), std::unique_ptr<OutputFormatter>(new VerboseStandardOutputFormatter(out)));
+
+    // Connect to dummy server and execute readcoils command
+    client.connect(boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"), 8502));
+    ReadCoilsCommand cmd;
+    cmd.exec(client, std::vector<std::string>{"--startAddress", "20", "--numCoils", "8"});
+
+    // Dummy server is done now
+    t.join();
+
+    // Make sure that output printed by the command is correct
+    std::stringstream expected_out;
+    expected_out <<
+           "          req: [00 01 00 00 00 06 ab 01 00 14 00 08 ]" << std::endl
+        << "          rsp: [00 01 00 00 00 03 ab 81 01 ]" << std::endl
+        << "       unitId: 0xab" << std::endl
+        << "function code: 0x01" << std::endl
+        << "transactionId: 0x0001" << std::endl
+        << "        error: 1" << std::endl;
+
+    REQUIRE(expected_out.str() == out.str());
+}
+
+
 #endif
 
