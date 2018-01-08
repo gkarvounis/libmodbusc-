@@ -4,9 +4,10 @@
 
 TEST_CASE("socket connector - canceling connection attempt", "[SocketConnector]") {
     boost::asio::io_service io;
-    std::shared_ptr<SocketConnector> connector = std::make_shared<SocketConnector>(io);
-    connector->async_connect(boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"), 8080), boost::posix_time::milliseconds(500), [](std::unique_ptr<boost::asio::ip::tcp::socket> sock) {
-        REQUIRE(sock.get() == nullptr);
+    boost::asio::ip::tcp::socket sock(io);
+    std::shared_ptr<SocketConnector> connector = std::make_shared<SocketConnector>(io, boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"), 8080), boost::posix_time::milliseconds(500));
+    connector->async_connect(sock, [](const boost::system::error_code& ec) {
+        REQUIRE(ec == boost::asio::error::operation_aborted);
     });
 
     boost::asio::deadline_timer tmr(io);
@@ -31,8 +32,9 @@ TEST_CASE("socket connector - connection succeeds immediately", "[SocketConnecto
         connected = true;
     });
 
-    connector->async_connect(boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"), 8080), boost::posix_time::milliseconds(2000), [](std::unique_ptr<boost::asio::ip::tcp::socket> sock) {
-        REQUIRE(sock.get() != nullptr);
+    SocketConnector::Socket sock(io);
+    connector->async_connect(sock, SocketConnector::Endpoint(boost::asio::ip::address::from_string("127.0.0.1"), 8080), SocketConnector::Interval(2000), [](const boost::system::error_code& ec) {
+        REQUIRE( !ec );
     });
 
     io.run();
@@ -49,7 +51,7 @@ TEST_CASE("socket connector - connection succeeds after some attempts", "[Socket
     bool connected = false;
     boost::asio::deadline_timer tmr(io);
     boost::asio::ip::tcp::acceptor acceptor(io, boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"), 8080));
-    boost::asio::ip::tcp::socket client(io);
+    SocketConnector::Socket client(io);
 
     tmr.expires_from_now(boost::posix_time::milliseconds(1500));
     tmr.async_wait([&acceptor, &connected, &client](const boost::system::error_code& ec) {
@@ -61,8 +63,9 @@ TEST_CASE("socket connector - connection succeeds after some attempts", "[Socket
         });
     });
 
-    connector->async_connect(boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"), 8080), boost::posix_time::milliseconds(200), [](std::unique_ptr<boost::asio::ip::tcp::socket> sock) {
-        REQUIRE(sock.get() != nullptr);
+    SocketConnector::Socket sock(io);
+    connector->async_connect(sock, SocketConnector::Endpoint(boost::asio::ip::address::from_string("127.0.0.1"), 8080), SocketConnector::Interval(200), [](const boost::system::error_code& ec) {
+        REQUIRE( !ec );
     });
 
     io.run();

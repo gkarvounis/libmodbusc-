@@ -2,21 +2,19 @@
 #define SOCKET_CONNECTOR_HPP
 
 
-#include <list>
-
 class SocketConnector : public std::enable_shared_from_this<SocketConnector> {
 public:
-    using PSocket = std::unique_ptr<boost::asio::ip::tcp::socket>;
-    using SocketConnectedCb = std::function<void(PSocket)>;
-    using Endpoint = boost::asio::ip::tcp::endpoint;
-    using Interval = boost::posix_time::milliseconds;
+    using Socket                                    = boost::asio::ip::tcp::socket;
+    using Endpoint                                  = boost::asio::ip::tcp::endpoint;
+    using Interval                                  = boost::posix_time::milliseconds;
+    using SocketConnectedCb                         = std::function<void(const boost::system::error_code& ec)>;
 
                                                     SocketConnector(boost::asio::io_service& io);
                                                     SocketConnector(boost::asio::io_service& io, const Endpoint& ep, const Interval& interval);
                                                    ~SocketConnector();
 
-    void                                            async_connect(const Endpoint& ep, const Interval& interval, SocketConnectedCb cb);
-    void                                            async_connect(SocketConnectedCb cb);
+    void                                            async_connect(Socket& sock, const Endpoint& ep, const Interval& interval, SocketConnectedCb cb);
+    void                                            async_connect(Socket& sock, SocketConnectedCb cb);
 
     void                                            cancel();
 
@@ -27,11 +25,14 @@ private:
     Interval                                        m_interval;
     SocketConnectedCb                               m_connectedCb;
     Endpoint                                        m_endpoint;
-    PSocket                                         m_socket;
+    std::function<void(void)>                       m_cancel;
 
-    void                                            initConnection();
-    void                                            initTimer();
+    void                                            initConnection(Socket& sock);
+    void                                            initTimer(Socket& sock);
     void                                            postCallback();
+    void                                            postCallback(const boost::system::error_code& ec);
+
+    void                                            cancelConnection(Socket& sock);
 };
 
 
@@ -40,7 +41,7 @@ SocketConnector::SocketConnector(boost::asio::io_service& io) :
     m_interval(0),
     m_connectedCb(),
     m_endpoint(),
-    m_socket(nullptr)
+    m_cancel()
 {}
 
 
@@ -48,8 +49,7 @@ SocketConnector::SocketConnector(boost::asio::io_service& io, const Endpoint& ep
     m_timer(io),
     m_interval(interval),
     m_connectedCb(),
-    m_endpoint(ep),
-    m_socket(nullptr)
+    m_endpoint(ep)
 {}
 
 
@@ -63,40 +63,45 @@ boost::asio::io_service& SocketConnector::get_io_service() {
 }
 
 
-void SocketConnector::async_connect(const Endpoint& ep, const Interval& interval, SocketConnectedCb cb) {
+void SocketConnector::async_connect(Socket& sock, const Endpoint& ep, const Interval& interval, SocketConnectedCb cb) {
+    m_endpoint = ep;
+    m_interval = interval;
+    m_connectedCb = cb;
+    
     auto self = shared_from_this();
 
-    m_timer.get_io_service().post([self, this, ep, interval, cb]() {
-        m_endpoint = ep;
-        m_connectedCb = cb;
-        m_interval = interval;
-        m_socket.reset(new boost::asio::ip::tcp::socket(m_timer.get_io_service()));
-        initConnection();
-    });
+    m_cancel = [self, this, &sock]() {
+        cancelConnection(sock);
+    };
+
+    initConnection(sock);
 }
 
 
-void SocketConnector::async_connect(SocketConnectedCb cb) {
+void SocketConnector::async_connect(Socket& sock, SocketConnectedCb cb) {
+    m_connectedCb = cb;
+
     auto self = shared_from_this();
-    m_timer.get_io_service().post([self, this, cb]() {
-        m_connectedCb = cb;
-        m_socket.reset(new boost::asio::ip::tcp::socket(m_timer.get_io_service()));
-        initConnection();
-    });
+
+    m_cancel = [self, this, &sock]() {
+        cancelConnection(sock);
+    };
+
+    initConnection(sock);
 }
 
 
-void SocketConnector::initConnection() {
+void SocketConnector::initConnection(Socket& sock) {
     auto self = shared_from_this();
-    std::cout << "attempting connection to " << m_endpoint << std::endl;
+    std::cout << "Attempting connection to " << m_endpoint << std::endl;
 
-    m_socket->async_connect(m_endpoint, [self, this](const boost::system::error_code& ec) {
+    sock.async_connect(m_endpoint, [self, this, &sock](const boost::system::error_code& ec) {
         std::cout << "on connected ec=" << ec.message() << std::endl;
+
         if (ec == boost::asio::error::operation_aborted) {
-            m_socket.reset(nullptr);
-            postCallback();
+            postCallback(ec);
         } else if (ec) {
-            initTimer();
+            initTimer(sock);
         } else {
             postCallback();
         }
@@ -104,34 +109,51 @@ void SocketConnector::initConnection() {
 }
 
 
-void SocketConnector::initTimer() {
+void SocketConnector::initTimer(Socket& sock) {
+    auto self = shared_from_this();
+
     m_timer.expires_from_now(m_interval);
-    m_timer.async_wait([this](const boost::system::error_code& ec) {
+
+    m_timer.async_wait([self, this, &sock](const boost::system::error_code& ec) {
         if (ec == boost::asio::error::operation_aborted) {
-            m_socket.reset(nullptr);
-            postCallback();
+            postCallback(ec);
         } else
-            initConnection();
+            initConnection(sock);
     });
 }
 
 
-void SocketConnector::cancel() {
-    m_timer.get_io_service().post([this]() {
-        m_socket->cancel();
-        m_timer.cancel();
+void SocketConnector::postCallback(const boost::system::error_code& ec) {
+    auto cb = std::move(m_connectedCb);
+    m_cancel = nullptr;
+
+    m_timer.get_io_service().post([cb, ec]() {
+        cb(ec);
     });
 }
 
 
 void SocketConnector::postCallback() {
-    auto cb = m_connectedCb;
+    auto cb = std::move(m_connectedCb);
+
+    m_cancel = nullptr;
     m_connectedCb = nullptr;
 
-    auto raw_socket = m_socket.release();
-    m_timer.get_io_service().post([cb, raw_socket]() {
-        cb(PSocket(raw_socket));
+    m_timer.get_io_service().post([cb]() {
+        cb(boost::system::error_code());
     });
+
+}
+
+
+void SocketConnector::cancel() {
+    m_cancel();
+}
+
+
+void SocketConnector::cancelConnection(Socket& sock) {
+    m_timer.cancel();
+    sock.cancel();
 }
 
 #endif

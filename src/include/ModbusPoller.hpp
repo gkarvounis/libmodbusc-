@@ -3,6 +3,8 @@
 
 
 #include "SocketConnector.hpp"
+#include <list>
+
 
 class ModbusPoller {
 public:
@@ -44,17 +46,17 @@ private:
 
     using PTask = std::shared_ptr<PollTask>;
 
-    boost::asio::io_service                    &m_io;
     std::shared_ptr<SocketConnector>            m_connector;
-    SocketConnector::PSocket                    m_socket;
+    SocketConnector::Socket                     m_socket;
+    bool                                        m_connected;
     std::set<PTask>                             m_tasks;
     std::list<PTask>                            m_taskQueue;
 
     void                                        initFirstConnection();
-    void                                        onFirstTimeConnected(SocketConnector::PSocket sock);
+    void                                        onFirstTimeConnected();
 
     void                                        initReconnection();
-    void                                        onReconnected(SocketConnector::PSocket sock);
+    void                                        onReconnected();
 
     boost::asio::io_service&                    get_io_service();
     void                                        enque(PTask task);
@@ -147,15 +149,16 @@ void ModbusPoller::PollTask::cancel() {
 
 
 boost::asio::io_service& ModbusPoller::get_io_service() {
-    return m_io;
+    return m_socket.get_io_service();
 }
 
 
 ModbusPoller::ModbusPoller(boost::asio::io_service& io, const SocketConnector::Endpoint& ep, const Interval& reconnectInterval) :
-    m_io(io),
     m_connector(std::make_shared<SocketConnector>(io, ep, reconnectInterval)),
-    m_socket(nullptr),
-    m_tasks()
+    m_socket(io),
+    m_connected(false),
+    m_tasks(),
+    m_taskQueue()
 {}
 
 
@@ -171,49 +174,51 @@ void ModbusPoller::start() {
 
 
 void ModbusPoller::initFirstConnection() {
-    m_connector->async_connect([this](SocketConnector::PSocket sock) {
-        onFirstTimeConnected(std::move(sock));
+    m_connector->async_connect(m_socket, [this](const boost::system::error_code& ec) {
+        if (ec)
+            return;
+
+        onFirstTimeConnected();
     });
 }
 
 
-void ModbusPoller::onFirstTimeConnected(SocketConnector::PSocket sock) {
-    if (sock.get() == nullptr)
-        return;
+void ModbusPoller::onFirstTimeConnected() {
+    m_connected = true;
 
-    m_socket.swap(sock);
-
-    for (auto& task: m_tasks) {
+    for (auto& task: m_tasks)
         task->start();
-    }
 }
 
 
 void ModbusPoller::enque(std::shared_ptr<PollTask> task) {
-    if (m_socket.get() == nullptr)
+    if (!m_connected)
         return;
 
     if (m_taskQueue.empty()) {
         m_taskQueue.push_back(task);
-        task->asyncModbusDialog(m_socket.get());
+        task->asyncModbusDialog(&m_socket);
     } else
         m_taskQueue.push_back(task);
 }
 
 
 void ModbusPoller::initReconnection() {
-     m_connector->async_connect([this](SocketConnector::PSocket sock) {
-        onReconnected(std::move(sock));
+     m_connector->async_connect(m_socket, [this](const boost::system::error_code& ec) {
+        if (ec)
+            return;
+
+        onReconnected();
     });
    
 }
 
 
-void ModbusPoller::onReconnected(SocketConnector::PSocket sock) {
-    m_socket.swap(sock);
+void ModbusPoller::onReconnected() {
+    m_connected = true;
 
     if (!m_taskQueue.empty())
-        m_taskQueue.front()->asyncModbusDialog(m_socket.get());
+        m_taskQueue.front()->asyncModbusDialog(&m_socket);
 }
 
 
@@ -223,12 +228,12 @@ void ModbusPoller::handleModbusDialogDone(const boost::system::error_code& ec) {
     if (ec == boost::asio::error::operation_aborted) {
         return;
     } else if (ec) {
-        m_socket.reset(nullptr);
+        m_connected = false;
         m_taskQueue.clear();
         initReconnection();
     } else {
         if (!m_taskQueue.empty())
-            m_taskQueue.front()->asyncModbusDialog(m_socket.get());
+            m_taskQueue.front()->asyncModbusDialog(&m_socket);
     }
 
 }
@@ -236,12 +241,12 @@ void ModbusPoller::handleModbusDialogDone(const boost::system::error_code& ec) {
 
 void ModbusPoller::handleModbusDialogDone() {
     if (!m_taskQueue.empty())
-        m_taskQueue.front()->asyncModbusDialog(m_socket.get());
+        m_taskQueue.front()->asyncModbusDialog(&m_socket);
 }
 
 
 void ModbusPoller::cancel() {
-    m_io.post([this] {
+    m_socket.get_io_service().post([this] {
         m_connector->cancel();
 
         for (auto&task: m_tasks)
@@ -250,10 +255,7 @@ void ModbusPoller::cancel() {
         m_tasks.clear();
         m_taskQueue.clear();
 
-        if (m_socket.get() != nullptr) {
-            m_socket->cancel();
-            m_socket.reset();
-        }
+        m_socket.close();
     });
 }
 
