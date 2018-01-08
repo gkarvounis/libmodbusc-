@@ -7,10 +7,12 @@
 #include "ModbusTypes.hpp"
 #include "ModbusEncoder.hpp"
 #include "ModbusDecoder.hpp"
+
+#include "SocketConnector.hpp"
+#include "ModbusPollTask.hpp"
 #include "ModbusPoller.hpp"
 
 #include <thread>
-#include "SocketConnector.hpp"
 #include "test_socket_connector.hpp"
 
 /*

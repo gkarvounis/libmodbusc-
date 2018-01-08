@@ -2,13 +2,10 @@
 #define MODBUS_POLLER_HPP
 
 
-#include "SocketConnector.hpp"
-#include "ModbusPollTask.hpp"
-
 #include <list>
 
 
-class ModbusPoller {
+class ModbusPoller : public std::enable_shared_from_this<ModbusPoller> {
 public:
     using Interval                              = boost::posix_time::milliseconds;
     using Vector                                = std::vector<uint8_t>;
@@ -69,7 +66,9 @@ void ModbusPoller::start() {
 
 
 void ModbusPoller::initFirstConnection() {
-    m_connector->async_connect(m_socket, [this](const boost::system::error_code& ec) {
+    auto self = shared_from_this();
+
+    m_connector->async_connect(m_socket, [self, this](const boost::system::error_code& ec) {
         if (ec)
             return;
 
@@ -116,7 +115,9 @@ void ModbusPoller::handleModbusDialogDone(const boost::system::error_code& ec) {
 
 
 void ModbusPoller::initReconnection() {
-     m_connector->async_connect(m_socket, [this](const boost::system::error_code& ec) {
+    auto self = shared_from_this();
+
+    m_connector->async_connect(m_socket, [self, this](const boost::system::error_code& ec) {
         if (ec)
             return;
 
@@ -145,7 +146,9 @@ void ModbusPoller::handleModbusDialogDone() {
 
 
 void ModbusPoller::cancel() {
-    m_socket.get_io_service().post([this] {
+    auto self = shared_from_this();
+
+    m_socket.get_io_service().post([self, this] {
         m_connector->cancel();
 
         for (auto&task: m_tasks)
