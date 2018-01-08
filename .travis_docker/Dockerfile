@@ -7,5 +7,6 @@ CMD cd /root/libmodbusc++/ && \
     test/decoder/testdecoder && \
     test/serverDevice/test_server_device && \
     test/server/test_server && \
-    test/modbuscli/testmodbuscli
+    test/modbuscli/testmodbuscli && \
+    test/socket_connector/testSocketConnector
 
