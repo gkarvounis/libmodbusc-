@@ -9,13 +9,15 @@ public:
     using Vector                            = std::vector<uint8_t>;
     using PollCallback                      = std::function<void(void)>;
 
-                                            ModbusPollTask(ModbusPoller* owner, const Vector& req, Vector& rsp, const Interval& interval, PollCallback pollCb);
+                                            ModbusPollTask(std::shared_ptr<ModbusPoller> owner, const Vector& req, Vector& rsp, const Interval& interval, PollCallback pollCb);
+                                           ~ModbusPollTask();
+
     void                                    start();
     void                                    cancel();
     void                                    asyncModbusDialog(boost::asio::ip::tcp::socket* sock);
 
 private:
-    ModbusPoller                           *m_owner;
+    std::shared_ptr<ModbusPoller>           m_owner;
     Vector                                  m_req;
     Vector                                 &m_rsp;
     Interval                                m_interval;
@@ -33,13 +35,20 @@ private:
 
 
 template <typename ModbusPoller>
-ModbusPollTask<ModbusPoller>::ModbusPollTask(ModbusPoller* owner, const Vector& req, Vector& rsp, const Interval& interval, PollCallback pollCb) :
+ModbusPollTask<ModbusPoller>::ModbusPollTask(std::shared_ptr<ModbusPoller> owner, const Vector& req, Vector& rsp, const Interval& interval, PollCallback pollCb) :
+    m_owner(owner),
     m_req(req),
     m_rsp(rsp),
     m_interval(interval),
     m_pollCb(pollCb),
     m_timer(owner->get_io_service())
 {}
+
+
+template <typename ModbusPoller>
+ModbusPollTask<ModbusPoller>::~ModbusPollTask() {
+    std::cout << "~ModbusPollTask" << std::endl;
+}
 
 
 template <typename ModbusPoller>
@@ -86,7 +95,7 @@ void ModbusPollTask<ModbusPoller>::initHeaderReception() {
         if (ec)
             m_owner->handleModbusDialogDone(ec);
         else
-            initPayloadReception();        
+            initPayloadReception();
     });
 }
 

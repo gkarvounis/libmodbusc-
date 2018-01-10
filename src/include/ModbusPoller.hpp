@@ -12,6 +12,8 @@ public:
     using PollCallback                          = std::function<void(void)>;
 
                                                 ModbusPoller(boost::asio::io_service& io, const SocketConnector::Endpoint& ep, const Interval& reconnectInterval);
+                                               ~ModbusPoller();
+
     void                                        addPollTask(const Vector& req, Vector& rsp, const Interval& interval, PollCallback cb);
     void                                        start();
     void                                        cancel();
@@ -54,8 +56,13 @@ ModbusPoller::ModbusPoller(boost::asio::io_service& io, const SocketConnector::E
 {}
 
 
+ModbusPoller::~ModbusPoller() {
+    std::cout << "~ModbusPoller" << std::endl;
+}
+
+
 void ModbusPoller::addPollTask(const Vector& req, Vector& rsp, const Interval& interval, PollCallback cb) {
-    auto task = std::make_shared<Task>(this, req, rsp, interval, cb);  
+    auto task = std::make_shared<Task>(shared_from_this(), req, rsp, interval, cb);
     m_tasks.insert(task);
 }
 
