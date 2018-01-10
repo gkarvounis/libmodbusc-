@@ -8,5 +8,6 @@ CMD cd /root/libmodbusc++/ && \
     test/serverDevice/test_server_device && \
     test/server/test_server && \
     test/modbuscli/testmodbuscli && \
-    test/socket_connector/testSocketConnector
+    test/socket_connector/testSocketConnector && \
+    test/modbus_poller/testModbusPoller
 
