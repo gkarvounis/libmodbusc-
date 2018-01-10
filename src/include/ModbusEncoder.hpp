@@ -30,6 +30,8 @@ public:
 
     template<typename Iterator>
     void                                encodeReadCoilsRsp(Iterator begin, Iterator end, std::vector<uint8_t>& target) const;
+    template <typename Vector>
+    void                                encodeReadCoilsRsp(const Vector& values, std::vector<uint8_t>& target) const;
     template<typename Iterator>
     void                                encodeReadDiscreteInputsRsp(Iterator begin, Iterator end, std::vector<uint8_t>& target) const;
     template<typename Iterator>
@@ -206,6 +208,12 @@ void Encoder::encodeWriteSingleRegisterRsp(const Address& address, uint16_t valu
 template<typename Iterator>
 void Encoder::encodeReadCoilsRsp(Iterator begin, Iterator end, std::vector<uint8_t>& target) const {
     encodeReadBitsRsp(begin, end, FunctionCode::READ_COILS, target);
+}
+
+
+template <typename Vector>
+void Encoder::encodeReadCoilsRsp(const Vector& values, std::vector<uint8_t>& target) const {
+    encodeReadCoilsRsp(values.cbegin(), values.cend(), target);
 }
 
 
