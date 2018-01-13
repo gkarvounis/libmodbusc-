@@ -33,14 +33,18 @@ void modbusServer(const std::vector<uint8_t>& expected_request, const::std::vect
     acceptor.accept(sock);
     std::vector<uint8_t> req;
 
-    while(true) {
-        req.resize(expected_request.size());
-        std::cout << "Expecting request (" << expected_request.size() << " bytes)" << std::endl;
-        boost::asio::read(sock, boost::asio::buffer(req));
-        REQUIRE(expected_request == req);
+    try {
+        while(true) {
+            req.resize(expected_request.size());
+            std::cout << "Expecting request (" << expected_request.size() << " bytes)" << std::endl;
+            boost::asio::read(sock, boost::asio::buffer(req));
+            REQUIRE(expected_request == req);
 
-        boost::asio::write(sock, boost::asio::buffer(response));
-        std::cout << "Response sent (" << response.size() << " bytes)" << std::endl;
+            boost::asio::write(sock, boost::asio::buffer(response));
+            std::cout << "Response sent (" << response.size() << " bytes)" << std::endl;
+        }
+    } catch(const boost::system::system_error& ec) {
+        REQUIRE (ec.what() == std::string("read: End of file"));
     }
 }
 
@@ -104,7 +108,6 @@ TEST_CASE("ModbusPoller - no polling tasks", "[ModbusPoller]") {
 
 
 TEST_CASE("ModbusPoller - one polling task", "[ModbusPoller]") {
-    /*
     std::vector<uint8_t> req;
     std::vector<uint8_t> rsp;
     modbus::tcp::Encoder encoder(modbus::tcp::UnitId(0xab), modbus::tcp::TransactionId(0x0002));
@@ -119,14 +122,23 @@ TEST_CASE("ModbusPoller - one polling task", "[ModbusPoller]") {
 
     std::shared_ptr<ModbusPoller> poller = std::make_shared<ModbusPoller>(io, make_endpoint("127.0.0.1", 8502), make_millisecs(100));
 
+    std::size_t num_samples = 0;
     std::vector<uint8_t> rx_buffer;
-    poller->addPollTask(req, rx_buffer, make_millisecs(1000), []() {
-        std::cout << "Sample!" << std::endl;
+    poller->addPollTask(req, rx_buffer, make_millisecs(500), [&num_samples, &rx_buffer, &rsp]() {
+        num_samples++;
+        std::cout << "sample received" << std::endl;
+        REQUIRE(rx_buffer == rsp);
+    });
+
+    boost::asio::deadline_timer tmr(io);
+    tmr.expires_from_now(make_millisecs(2200));
+    tmr.async_wait([poller](const boost::system::error_code& ec) {
+        REQUIRE( !ec );
+        poller->cancel();
     });
 
     poller->start();
     io.run();
     t.join();
-    */
+    REQUIRE(num_samples == 5);
 }
-

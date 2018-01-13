@@ -147,7 +147,8 @@ void SocketConnector::postCallback() {
 
 
 void SocketConnector::cancel() {
-    m_cancel();
+    if (m_cancel)
+        m_cancel();
 }
 
 
