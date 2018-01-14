@@ -25,33 +25,6 @@ boost::posix_time::milliseconds make_millisecs(std::size_t msecs) {
 }
 
 
-
-
-void modbusServer(const std::vector<uint8_t>& expected_request, const::std::vector<uint8_t>& response) {
-    boost::asio::io_service io;
-    boost::asio::ip::tcp::acceptor acceptor(io, boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"), 8502));
-    acceptor.set_option(boost::asio::socket_base::reuse_address(true));
-    boost::asio::ip::tcp::socket sock(io);
-
-    acceptor.accept(sock);
-    std::vector<uint8_t> req;
-
-    try {
-        while(true) {
-            req.resize(expected_request.size());
-            std::cout << "Expecting request (" << expected_request.size() << " bytes)" << std::endl;
-            boost::asio::read(sock, boost::asio::buffer(req));
-            REQUIRE(expected_request == req);
-
-            boost::asio::write(sock, boost::asio::buffer(response));
-            std::cout << "Response sent (" << response.size() << " bytes)" << std::endl;
-        }
-    } catch(const boost::system::system_error& ec) {
-        REQUIRE (ec.what() == std::string("read: End of file"));
-    }
-}
-
-
 class OneTimeTcpAcceptor {
 public:
     OneTimeTcpAcceptor(boost::asio::io_service& io) :
@@ -132,25 +105,38 @@ TEST_CASE("ModbusPoller - one polling task", "[ModbusPoller]") {
             m_io(),
             m_server(m_io, *this),
             m_poller(std::make_shared<ModbusPoller>(m_io, make_endpoint("127.0.0.1", 8502), make_millisecs(100))),
-            m_request(),
-            m_expectedSample(),
-            m_rxSample(),
+            m_request1(),
+            m_expectedSample1(),
+            m_rxSample1(),
+            m_request2(),
+            m_expectedSample2(),
+            m_rxSample2(),
             m_coils({0,1,0,0,1,1,0,1}),
             m_numReceivedSamples(0)
         {
             modbus::tcp::Encoder encoder(modbus::tcp::UnitId(0xab), modbus::tcp::TransactionId(0x0002));
-            encoder.encodeReadCoilsReq(modbus::tcp::Address(0x0123), modbus::tcp::NumBits(8), m_request);
-            encoder.encodeReadCoilsRsp(m_coils, m_expectedSample);
 
-            m_poller->addPollTask(m_request, m_rxSample, make_millisecs(500), [this]() {
+            encoder.encodeReadCoilsReq(modbus::tcp::Address(0x0123), modbus::tcp::NumBits(4), m_request1);
+            encoder.encodeReadCoilsRsp(m_coils.begin(), m_coils.begin()+4, m_expectedSample1);
+
+            encoder.encodeReadCoilsReq(modbus::tcp::Address(0x0127), modbus::tcp::NumBits(4), m_request2);
+            encoder.encodeReadCoilsRsp(m_coils.begin()+4, m_coils.end(), m_expectedSample2);
+
+            m_poller->addPollTask(m_request1, m_rxSample1, make_millisecs(500), [this]() {
                 std::cout << "Sample!" << std::endl;
                 m_numReceivedSamples++;
-                REQUIRE(m_rxSample == m_expectedSample);
+                REQUIRE(m_rxSample1 == m_expectedSample1);
 
                 if (m_numReceivedSamples == 3) {
                     m_poller->cancel();
+                    m_poller = nullptr;
                     m_server.stop();
                 }
+            });
+
+            m_poller->addPollTask(m_request2, m_rxSample2, make_millisecs(500), [this]() {
+                std::cout << "Sample2" << std::endl;
+                REQUIRE(m_rxSample2 == m_expectedSample2);
             });
         }
 
@@ -176,9 +162,14 @@ TEST_CASE("ModbusPoller - one polling task", "[ModbusPoller]") {
         modbus::tcp::Server                 m_server;
         PModbusPoller                       m_poller;
 
-        std::vector<uint8_t>                m_request;
-        std::vector<uint8_t>                m_expectedSample;
-        std::vector<uint8_t>                m_rxSample;
+        std::vector<uint8_t>                m_request1;
+        std::vector<uint8_t>                m_expectedSample1;
+        std::vector<uint8_t>                m_rxSample1;
+
+        std::vector<uint8_t>                m_request2;
+        std::vector<uint8_t>                m_expectedSample2;
+        std::vector<uint8_t>                m_rxSample2;
+
         std::vector<uint8_t>                m_coils;
 
         std::size_t                         m_numReceivedSamples;
@@ -187,3 +178,4 @@ TEST_CASE("ModbusPoller - one polling task", "[ModbusPoller]") {
     MyTest test;
     test.start();
 }
+
