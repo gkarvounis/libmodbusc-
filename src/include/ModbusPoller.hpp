@@ -53,11 +53,13 @@ ModbusPoller::ModbusPoller(boost::asio::io_service& io, const SocketConnector::E
     m_connected(false),
     m_tasks(),
     m_taskQueue()
-{}
+{
+    std::cout << "ModbusPoller: " << this << std::endl;
+}
 
 
 ModbusPoller::~ModbusPoller() {
-    std::cout << "~ModbusPoller" << std::endl;
+    std::cout << "~ModbusPoller: " << this << std::endl;
 }
 
 
@@ -109,15 +111,11 @@ void ModbusPoller::handleModbusDialogDone(const boost::system::error_code& ec) {
 
     if (ec == boost::asio::error::operation_aborted) {
         return;
-    } else if (ec) {
+    } else {
         m_connected = false;
         m_taskQueue.clear();
         initReconnection();
-    } else {
-        if (!m_taskQueue.empty())
-            m_taskQueue.front()->asyncModbusDialog(&m_socket);
     }
-
 }
 
 
@@ -142,8 +140,6 @@ void ModbusPoller::onReconnected() {
 }
 
 
-
-
 void ModbusPoller::handleModbusDialogDone() {
     m_taskQueue.pop_front();
 
@@ -161,11 +157,17 @@ void ModbusPoller::cancel() {
         for (auto&task: m_tasks)
             task->cancel();
 
-        m_tasks.clear();
-        m_taskQueue.clear();
-
-        m_socket.close();
+        m_socket.cancel();
         m_connected = false;
+
+        m_tasks.clear();
+
+        if (!m_taskQueue.empty()) {
+            auto front = m_taskQueue.front();
+            m_taskQueue.clear();
+            m_taskQueue.push_back(front);
+        } else
+            m_taskQueue.clear();
     });
 }
 
