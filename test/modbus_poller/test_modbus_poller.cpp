@@ -10,6 +10,8 @@
 #include "SocketConnector.hpp"
 #include "ModbusPollTask.hpp"
 #include "ModbusPoller.hpp"
+#include "ModbusServerDevice.hpp"
+#include "ModbusServer.hpp"
 #include <thread>
 
 
@@ -21,6 +23,7 @@ boost::asio::ip::tcp::endpoint make_endpoint(const std::string& ip, uint16_t por
 boost::posix_time::milliseconds make_millisecs(std::size_t msecs) {
     return boost::posix_time::milliseconds(msecs);
 }
+
 
 
 
@@ -62,14 +65,26 @@ public:
         REQUIRE(m_connected == true);
     }
 
-    void async_accept(const boost::asio::ip::tcp::endpoint& ep, const boost::posix_time::milliseconds& delay) {
+    void asyncAcceptWithDelay(const boost::asio::ip::tcp::endpoint& ep, const boost::posix_time::milliseconds& delay, std::function<void(void)> cb) {
         m_endpoint = ep;
+        m_callback = cb;
 
         m_timer.expires_from_now(delay);
         m_timer.async_wait([this] (const boost::system::error_code& ec) {
             REQUIRE(!ec);
             onTimer();
         });
+    }
+
+    void asyncAccept(const boost::asio::ip::tcp::endpoint& ep, std::function<void(void)> cb) {
+        m_endpoint = ep;
+        m_callback = cb;
+
+        m_timer.get_io_service().post([this]() { onTimer(); });
+    }
+
+    boost::asio::ip::tcp::socket& getConnectedClient() {
+        return m_client;
     }
     
 private:
@@ -78,6 +93,7 @@ private:
     boost::asio::ip::tcp::socket     m_client;
     boost::asio::ip::tcp::endpoint   m_endpoint;
     bool                             m_connected;
+    std::function<void(void)>        m_callback;
 
     void onTimer() {
         m_acceptor.open(boost::asio::ip::tcp::v4());
@@ -89,6 +105,7 @@ private:
             m_acceptor.close();
             REQUIRE(!ec);
             m_connected = true;
+            m_callback();
         });
     }
 };
@@ -101,44 +118,72 @@ TEST_CASE("ModbusPoller - no polling tasks", "[ModbusPoller]") {
     std::shared_ptr<ModbusPoller> poller = std::make_shared<ModbusPoller>(io, make_endpoint("127.0.0.1", 8502), make_millisecs(200));
     poller->start();
 
-    acceptor.async_accept(make_endpoint("127.0.0.1", 8502), make_millisecs(200));
+    acceptor.asyncAcceptWithDelay(make_endpoint("127.0.0.1", 8502), make_millisecs(200), []()  {});
 
     io.run();
 }
 
 
 TEST_CASE("ModbusPoller - one polling task", "[ModbusPoller]") {
-    std::vector<uint8_t> req;
-    std::vector<uint8_t> rsp;
-    modbus::tcp::Encoder encoder(modbus::tcp::UnitId(0xab), modbus::tcp::TransactionId(0x0002));
-    encoder.encodeReadCoilsReq(modbus::tcp::Address(0x0123), modbus::tcp::NumBits(8), req);
-    encoder.encodeReadCoilsRsp(std::vector<bool>{0, 1, 0, 0, 1, 1, 0, 1}, rsp);
+    class MyTest : public modbus::tcp::ServerDevice {
+    public:
+        MyTest() :
+            modbus::tcp::ServerDevice(modbus::tcp::UnitId(0xab)),
+            m_io(),
+            m_server(m_io, *this),
+            m_poller(std::make_shared<ModbusPoller>(m_io, make_endpoint("127.0.0.1", 8502), make_millisecs(100))),
+            m_request(),
+            m_expectedSample(),
+            m_rxSample(),
+            m_coils({0,1,0,0,1,1,0,1}),
+            m_numReceivedSamples(0)
+        {
+            modbus::tcp::Encoder encoder(modbus::tcp::UnitId(0xab), modbus::tcp::TransactionId(0x0002));
+            encoder.encodeReadCoilsReq(modbus::tcp::Address(0x0123), modbus::tcp::NumBits(8), m_request);
+            encoder.encodeReadCoilsRsp(m_coils, m_expectedSample);
 
-    std::thread t([&req, &rsp]() {
-        modbusServer(req, rsp);
-    });
+            m_poller->addPollTask(m_request, m_rxSample, make_millisecs(500), [this]() {
+                std::cout << "Sample!" << std::endl;
+                m_numReceivedSamples++;
+                REQUIRE(m_rxSample == m_expectedSample);
 
-    boost::asio::io_service io;
+                if (m_numReceivedSamples == 3) {
+                    m_poller->cancel();
+                    m_server.stop();
+                }
+            });
+        }
 
-    std::shared_ptr<ModbusPoller> poller = std::make_shared<ModbusPoller>(io, make_endpoint("127.0.0.1", 8502), make_millisecs(100));
+        ~MyTest() {
+            REQUIRE(m_numReceivedSamples == 3);
+        }
 
-    std::size_t num_samples = 0;
-    std::vector<uint8_t> rx_buffer;
-    poller->addPollTask(req, rx_buffer, make_millisecs(500), [&num_samples, &rx_buffer, &rsp]() {
-        num_samples++;
-        std::cout << "sample received" << std::endl;
-        REQUIRE(rx_buffer == rsp);
-    });
+        void start() {
+            m_server.start(make_endpoint("127.0.0.1", 8502), []() {});
+            m_poller->start();
+            m_io.run();
+        }
 
-    boost::asio::deadline_timer tmr(io);
-    tmr.expires_from_now(make_millisecs(2200));
-    tmr.async_wait([poller](const boost::system::error_code& ec) {
-        REQUIRE( !ec );
-        poller->cancel();
-    });
+    protected:
+        bool getCoil(const modbus::tcp::Address& addr) const override {
+            return m_coils.at(addr.get() - 0x0123);
+        }
+            
+    private:
+        using PModbusPoller = std::shared_ptr<ModbusPoller>;
 
-    poller->start();
-    io.run();
-    t.join();
-    REQUIRE(num_samples == 5);
+        boost::asio::io_service             m_io;
+        modbus::tcp::Server                 m_server;
+        PModbusPoller                       m_poller;
+
+        std::vector<uint8_t>                m_request;
+        std::vector<uint8_t>                m_expectedSample;
+        std::vector<uint8_t>                m_rxSample;
+        std::vector<uint8_t>                m_coils;
+
+        std::size_t                         m_numReceivedSamples;
+    };
+
+    MyTest test;
+    test.start();
 }
