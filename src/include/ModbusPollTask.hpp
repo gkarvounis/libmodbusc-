@@ -42,12 +42,14 @@ ModbusPollTask<ModbusPoller>::ModbusPollTask(std::shared_ptr<ModbusPoller> owner
     m_interval(interval),
     m_pollCb(pollCb),
     m_timer(owner->get_io_service())
-{}
+{
+    std::cout << "ModbusPollTask:" << this << std::endl;
+}
 
 
 template <typename ModbusPoller>
 ModbusPollTask<ModbusPoller>::~ModbusPollTask() {
-    std::cout << "~ModbusPollTask" << std::endl;
+    std::cout << "~ModbusPollTask:" << this << std::endl;
 }
 
 
@@ -91,7 +93,9 @@ template <typename ModbusPoller>
 void ModbusPollTask<ModbusPoller>::initHeaderReception() {
     m_rsp.resize(sizeof(modbus::tcp::Header));
 
-    boost::asio::async_read(*m_socket, boost::asio::buffer(m_rsp), [this](const boost::system::error_code& ec, std::size_t /* bytes_transferred */) {
+    auto self = this->shared_from_this();
+
+    boost::asio::async_read(*m_socket, boost::asio::buffer(m_rsp), [self, this](const boost::system::error_code& ec, std::size_t /* bytes_transferred */) {
         if (ec)
             m_owner->handleModbusDialogDone(ec);
         else
@@ -109,7 +113,9 @@ void ModbusPollTask<ModbusPoller>::initPayloadReception() {
 
     uint8_t* payload = m_rsp.data() + sizeof(modbus::tcp::Header);
 
-    boost::asio::async_read(*m_socket, boost::asio::buffer(payload, payloadSize), [this](const boost::system::error_code& ec, std::size_t /* bytes_transferred */) {
+    auto self = this->shared_from_this();
+
+    boost::asio::async_read(*m_socket, boost::asio::buffer(payload, payloadSize), [self, this](const boost::system::error_code& ec, std::size_t /* bytes_transferred */) {
         if (ec)
             m_owner->handleModbusDialogDone(ec);
         else
@@ -128,7 +134,6 @@ void ModbusPollTask<ModbusPoller>::onPayloadReceived() {
 template <typename ModbusPoller>
 void ModbusPollTask<ModbusPoller>::cancel() {
     m_timer.cancel();
-    m_pollCb = nullptr;
 }
 
 
