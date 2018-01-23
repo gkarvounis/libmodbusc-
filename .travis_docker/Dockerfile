@@ -9,5 +9,6 @@ CMD cd /root/libmodbusc++/ && \
     test/server/test_server -d yes && \
     test/modbuscli/testmodbuscli -d yes && \
     test/socket_connector/testSocketConnector -d yes && \
+    test/socket_connector_fsm/testSocketConnectorFsm -d yes && \
     test/modbus_poller/testModbusPoller -d yes
 

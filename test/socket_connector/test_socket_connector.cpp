@@ -26,7 +26,7 @@ TEST_CASE("socket connector - canceling connection attempt", "[SocketConnector]"
     });
 
     boost::asio::deadline_timer tmr(io);
-    tmr.expires_from_now(boost::posix_time::milliseconds(1100));
+    tmr.expires_from_now(millisecs(1100));
     tmr.async_wait([&connector](const boost::system::error_code& /*ec*/) {
         connector.cancel();
     });
@@ -71,7 +71,7 @@ TEST_CASE("socket connector - connection succeeds after some attempts", "[Socket
     boost::asio::ip::tcp::acceptor acceptor(io, make_endpoint("127.0.0.1", 8080));
     boost::asio::ip::tcp::socket client(io);
 
-    tmr.expires_from_now(boost::posix_time::milliseconds(1500));
+    tmr.expires_from_now(millisecs(1500));
     tmr.async_wait([&acceptor, &connected, &client](const boost::system::error_code& ec) {
         REQUIRE( !ec );
 

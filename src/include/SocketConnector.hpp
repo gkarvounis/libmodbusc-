@@ -46,7 +46,9 @@ private:
 
 SocketConnector::SocketConnector(boost::asio::io_service& io) : 
     m_fsm(&io)
-{}
+{
+    m_fsm.start();
+}
 
 
 SocketConnector::SocketConnector(boost::asio::io_service& io, const Endpoint& ep, const Interval& interval) :
