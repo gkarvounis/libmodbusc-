@@ -1,6 +1,23 @@
 #ifndef MODBUS_POLL_TASK_HPP
 #define MODBUS_POLL_TASK_HPP
 
+#include <boost/msm/back/state_machine.hpp>
+#include <boost/msm/front/state_machine_def.hpp>
+#include <boost/msm/front/functor_row.hpp>
+#include <boost/msm/front/euml/common.hpp>
+#include <boost/msm/front/euml/state_grammar.hpp>
+
+#include "msm_utils/actions/NoAction.hpp"
+#include "msm_utils/actions/State_NoAction.hpp"
+#include "msm_utils/events/EvtSent.hpp"
+#include "msm_utils/events/EvtReceived.hpp"
+#include "msm_utils/events/EvtTimerExpired.hpp"
+#include "msm_utils/guards/NoGuard.hpp"
+
+#include "ModbusPollTaskFsmEvents.hpp"
+#include "ModbusPollTaskFsmStates.hpp"
+#include "ModbusPollTaskFsmActions.hpp"
+#include "ModbusPollTaskFsm.hpp"
 
 template <typename ModbusPoller>
 class ModbusPollTask : public std::enable_shared_from_this<ModbusPollTask<ModbusPoller>> {

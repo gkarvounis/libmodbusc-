@@ -15,6 +15,8 @@
 #include "msm_utils/events/EvtTimerExpired.hpp"
 #include "msm_utils/events/EvtCancel.hpp"
 
+#include "msm_utils/actions/NoAction.hpp"
+
 #include "SocketConnectorFsmStates.hpp"
 #include "SocketConnectorFsmActions.hpp"
 #include "SocketConnectorFsm.hpp"

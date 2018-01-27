@@ -44,13 +44,6 @@ struct ActCancelTimer {
 };
 
 
-struct NoAction {
-    template <typename Event, typename FSM, typename SourceState, typename TargetState>
-    void operator()(const Event& /*evt*/, FSM& /*fsm*/, SourceState& /*source*/, TargetState& /*target*/) {}
-};
-
-
-
 template <typename Event, typename FSM, typename SourceState, typename TargetState>
 void ActInitConnection::operator()(const Event& /*evt*/, FSM& fsm, SourceState& /*source*/, TargetState& /*target*/) {
     std::cout << "Attempting connection to " << fsm.m_endpoint << std::endl;

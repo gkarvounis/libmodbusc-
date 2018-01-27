@@ -8,10 +8,12 @@
 class ModbusPoller : public std::enable_shared_from_this<ModbusPoller> {
 public:
     using Interval                              = boost::posix_time::milliseconds;
+    using Endpoint                              = boost::asio::ip::tcp::endpoint;
+    using Socket                                = boost::asio::ip::tcp::socket;
     using Vector                                = std::vector<uint8_t>;
     using PollCallback                          = std::function<void(void)>;
 
-                                                ModbusPoller(boost::asio::io_service& io, const SocketConnector::Endpoint& ep, const Interval& reconnectInterval);
+                                                ModbusPoller(boost::asio::io_service& io, const Endpoint& ep, const Interval& reconnectInterval);
                                                ~ModbusPoller();
 
     void                                        addPollTask(const Vector& req, Vector& rsp, const Interval& interval, PollCallback cb);
@@ -23,7 +25,7 @@ private:
     using PTask                                 = std::shared_ptr<Task>;
     friend class ModbusPollTask<ModbusPoller>;
 
-    std::shared_ptr<SocketConnector>            m_connector;
+    SocketConnector                             m_connector;
     SocketConnector::Socket                     m_socket;
     bool                                        m_connected;
     std::set<PTask>                             m_tasks;
@@ -47,8 +49,8 @@ boost::asio::io_service& ModbusPoller::get_io_service() {
 }
 
 
-ModbusPoller::ModbusPoller(boost::asio::io_service& io, const SocketConnector::Endpoint& ep, const Interval& reconnectInterval) :
-    m_connector(std::make_shared<SocketConnector>(io, ep, reconnectInterval)),
+ModbusPoller::ModbusPoller(boost::asio::io_service& io, const Endpoint& ep, const Interval& reconnectInterval) :
+    m_connector(io, ep, reconnectInterval),
     m_socket(io),
     m_connected(false),
     m_tasks(),
@@ -77,7 +79,7 @@ void ModbusPoller::start() {
 void ModbusPoller::initFirstConnection() {
     auto self = shared_from_this();
 
-    m_connector->async_connect(m_socket, [self, this](const boost::system::error_code& ec) {
+    m_connector.async_connect(m_socket, [self, this](const boost::system::error_code& ec) {
         if (ec)
             return;
 
@@ -122,7 +124,7 @@ void ModbusPoller::handleModbusDialogDone(const boost::system::error_code& ec) {
 void ModbusPoller::initReconnection() {
     auto self = shared_from_this();
 
-    m_connector->async_connect(m_socket, [self, this](const boost::system::error_code& ec) {
+    m_connector.async_connect(m_socket, [self, this](const boost::system::error_code& ec) {
         if (ec)
             return;
 
@@ -152,7 +154,7 @@ void ModbusPoller::cancel() {
     auto self = shared_from_this();
 
     m_socket.get_io_service().post([self, this] {
-        m_connector->cancel();
+        m_connector.cancel();
 
         for (auto&task: m_tasks)
             task->cancel();
