@@ -4,13 +4,6 @@
 
 namespace fsm {
 
-class State {
-public:
-    virtual std::string name() const  { return "noname state"; }
-    virtual void entryAction() { std::cout << "entry " << name() << std::endl; };
-    virtual void exitAction() { std::cout << "exit " << name() << std::endl; };
-};
-
 
 struct NoGuard {
     template <typename FromStateType, typename EventType, typename TargetStateType>
@@ -52,26 +45,30 @@ struct TryTransitionHelper<0, Fsm> {
 };
 
 
-template <typename FsmDef>
+template <typename FsmDef, typename FsmData>
 class Fsm {
 public:
-    using States = typename FsmDef::States;
-    using Transitions = typename FsmDef::Transitions;
-    using InitialState = typename FsmDef::InitialState;
+    Fsm(FsmData& fsmData);
 
     void start();
 
     template<typename EventType>
     void process_event(const EventType& evt);
 
-    Fsm();
+    FsmData& userData();
 
 private:
+    using States = typename FsmDef::States;
+    using Transitions = typename FsmDef::Transitions;
+    using InitialState = typename FsmDef::InitialState;
+
     template <std::size_t N, typename SomeFsm>
     friend class TryTransitionHelper;
 
     std::size_t     m_current_state_id;
     States          m_states;
+
+    FsmData        &m_fsmData;
 
     template <typename EventType>
     void transitionNotFound(const EventType&);
@@ -83,39 +80,40 @@ private:
 };
 
 
-template <typename FsmDef>
-Fsm<FsmDef>::Fsm() :
+template <typename FsmDef, typename FsmData>
+Fsm<FsmDef, FsmData>::Fsm(FsmData& fsmData) :
     m_current_state_id(TypeIndex<InitialState, States>::value),
-    m_states()
+    m_states(),
+    m_fsmData(fsmData)
 {}
 
 
-template <typename FsmDef>
-void Fsm<FsmDef>::start() {
+template <typename FsmDef, typename FsmData>
+void Fsm<FsmDef, FsmData>::start() {
     constexpr std::size_t entryStateIndex = TypeIndex<InitialState, States>::value;
     InitialState& initialState = std::get<entryStateIndex>(m_states);
-    initialState.entryAction();
+    FsmDef::entryAction(*this, initialState);
 }
 
 
-template <typename FsmDef>
+template <typename FsmDef, typename FsmData>
 template <typename EventType>
-void Fsm<FsmDef>::process_event(const EventType& evt) {
+void Fsm<FsmDef, FsmData>::process_event(const EventType& evt) {
     constexpr std::size_t NumTransitions = std::tuple_size<Transitions>::value;
-    TryTransitionHelper<NumTransitions-1, Fsm<FsmDef>>::tryTransition(this, evt);
+    TryTransitionHelper<NumTransitions-1, Fsm<FsmDef, FsmData>>::tryTransition(this, evt);
 }
 
 
-template <typename FsmDef>
+template <typename FsmDef, typename FsmData>
 template <typename EventType>
-void Fsm<FsmDef>::transitionNotFound(const EventType&) {
+void Fsm<FsmDef, FsmData>::transitionNotFound(const EventType&) {
     throw std::runtime_error("no transition found");
 }
 
 
-template <typename FsmDef>
+template <typename FsmDef, typename FsmData>
 template <typename EventType, std::size_t N>
-bool Fsm<FsmDef>::tryTransition(const EventType& evt) {
+bool Fsm<FsmDef, FsmData>::tryTransition(const EventType& evt) {
     using TransitionType        = typename std::tuple_element<N, Transitions>::type;
     using FromStateType         = typename std::tuple_element<0, TransitionType>::type;
     using TransitionEventType   = typename std::tuple_element<1, TransitionType>::type;
@@ -139,14 +137,20 @@ bool Fsm<FsmDef>::tryTransition(const EventType& evt) {
     bool ok = guard(fromState, evt, toState);
 
     if (ok) {
-        fromState.exitAction();
+        FsmDef::exitAction(*this, fromState);
         m_current_state_id = toStateIndex;
         ActionType action;
         action(*this, fromState, evt, toState);
-        toState.entryAction();
+        FsmDef::entryAction(*this, toState);
         return true;
     } else
         return false;
+}
+
+
+template <typename FsmDef, typename FsmData>
+FsmData& Fsm<FsmDef, FsmData>::userData() {
+    return m_fsmData;
 }
 
 
