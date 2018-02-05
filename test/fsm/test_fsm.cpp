@@ -10,19 +10,21 @@
 #include "fsm.hpp"
 
 
+template <typename T>
+static std::string toString(const T& s);
+
+
 class FsmDef {
 public:
-    template <typename T>
-    static std::string toString(const T& s);
-
-
     struct Evt0 {};
     struct Evt1 {};
     struct Evt2 {};
 
+
     struct State0 {};
     struct State1 {};
     struct State2 {};
+
 
     using States = std::tuple<
         State0,
@@ -30,7 +32,17 @@ public:
         State2
     >;
 
+
     using InitialState = State0;
+
+
+    using Transitions = std::tuple<
+        std::tuple<State0, Evt0, fsm::NoGuard, State0>,
+        std::tuple<State0, Evt1, fsm::NoGuard, State1>,
+        std::tuple<State1, Evt1, fsm::NoGuard, State1>,
+        std::tuple<State1, Evt0, fsm::NoGuard, State0>,
+        std::tuple<State1, Evt2, fsm::NoGuard, State2>
+    >;
 
 
     template <typename Fsm, typename FromStateType, typename EventType, typename TargetStateType>
@@ -48,54 +60,43 @@ public:
     static void exitAction(Fsm& fsm, State& state) {
         fsm.userData().push_back("exit:" + toString(state));
     }
-
-
-    using Transitions = std::tuple<
-        std::tuple<State0, Evt0, fsm::NoGuard, State0>,
-        std::tuple<State0, Evt1, fsm::NoGuard, State1>,
-        std::tuple<State1, Evt1, fsm::NoGuard, State1>,
-        std::tuple<State1, Evt0, fsm::NoGuard, State0>,
-        std::tuple<State1, Evt2, fsm::NoGuard, State2>
-    >;
 };
 
 
 template <>
-std::string FsmDef::toString(const FsmDef::State0&) {
+std::string toString(const FsmDef::State0&) {
     return "State0";
 }
 
 template <>
-std::string FsmDef::toString(const FsmDef::State1&) {
+std::string toString(const FsmDef::State1&) {
     return "State1";
 }
 
 template <>
-std::string FsmDef::toString(const FsmDef::State2&) {
+std::string toString(const FsmDef::State2&) {
     return "State2";
 }
 
 template <>
-std::string FsmDef::toString(const FsmDef::Evt0&) {
+std::string toString(const FsmDef::Evt0&) {
     return "Evt0";
 }
 
 template <>
-std::string FsmDef::toString(const FsmDef::Evt1&) {
+std::string toString(const FsmDef::Evt1&) {
     return "Evt1";
 }
 
 template <>
-std::string FsmDef::toString(const FsmDef::Evt2&) {
+std::string toString(const FsmDef::Evt2&) {
     return "Evt2";
 }
 
 
 TEST_CASE("test basic fsm functionality", "[fsm]") {
-    using UserData = std::vector<std::string>;
-
-    UserData transitions;
-    fsm::Fsm<FsmDef, UserData> fsm(transitions);
+    std::vector<std::string>transitions;
+    fsm::Fsm<FsmDef, std::vector<std::string>> fsm(transitions);
 
     fsm.start();
     fsm.process_event(FsmDef::Evt0());
