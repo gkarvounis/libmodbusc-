@@ -3,6 +3,7 @@ RUN apt-get -y update && apt-get -y upgrade && apt-get -y install g++ libboost-a
 CMD cd /root/libmodbusc++/ && \
     mkdir build && cd build && cmake ../ && \
     make && \
+    test/fsm/testFsm -d yes && \
     test/encoder/testencoder -d yes && \
     test/decoder/testdecoder -d yes && \
     test/serverDevice/test_server_device -d yes && \
