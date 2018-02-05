@@ -119,7 +119,6 @@ bool Fsm<FsmDef, FsmData>::tryTransition(const EventType& evt) {
     using TransitionEventType   = typename std::tuple_element<1, TransitionType>::type;
     using GuardType             = typename std::tuple_element<2, TransitionType>::type;
     using ToStateType           = typename std::tuple_element<3, TransitionType>::type;
-    using ActionType            = typename std::tuple_element<4, TransitionType>::type;
 
     constexpr std::size_t fromStateIndex        = TypeIndex<FromStateType, States>::value;
     constexpr std::size_t toStateIndex          = TypeIndex<ToStateType, States>::value;
@@ -139,8 +138,7 @@ bool Fsm<FsmDef, FsmData>::tryTransition(const EventType& evt) {
     if (ok) {
         FsmDef::exitAction(*this, fromState);
         m_current_state_id = toStateIndex;
-        ActionType action;
-        action(*this, fromState, evt, toState);
+        FsmDef::transitionAction(*this, fromState, evt, toState);
         FsmDef::entryAction(*this, toState);
         return true;
     } else

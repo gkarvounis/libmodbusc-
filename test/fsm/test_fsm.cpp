@@ -33,12 +33,10 @@ public:
     using InitialState = State0;
 
 
-    struct SomeTransitionAction {
-        template <typename Fsm, typename FromStateType, typename EventType, typename TargetStateType>
-        void operator()(Fsm& fsm, FromStateType& fromState, const EventType& evt, TargetStateType& toState) {
-            fsm.userData().push_back(toString(fromState) + ":" + toString(evt) + "->" + toString(toState));
-        }
-    };
+    template <typename Fsm, typename FromStateType, typename EventType, typename TargetStateType>
+    static void transitionAction(Fsm& fsm, FromStateType& fromState, const EventType& evt, TargetStateType& toState) {
+        fsm.userData().push_back(toString(fromState) + ":" + toString(evt) + "->" + toString(toState));
+    }
 
     template <typename Fsm, typename State>
     static void entryAction(Fsm& fsm, State& state) {
@@ -53,11 +51,11 @@ public:
 
 
     using Transitions = std::tuple<
-        std::tuple<State0, Evt0, fsm::NoGuard, State0, SomeTransitionAction>,
-        std::tuple<State0, Evt1, fsm::NoGuard, State1, SomeTransitionAction>,
-        std::tuple<State1, Evt1, fsm::NoGuard, State1, SomeTransitionAction>,
-        std::tuple<State1, Evt0, fsm::NoGuard, State0, SomeTransitionAction>,
-        std::tuple<State1, Evt2, fsm::NoGuard, State2, SomeTransitionAction>
+        std::tuple<State0, Evt0, fsm::NoGuard, State0>,
+        std::tuple<State0, Evt1, fsm::NoGuard, State1>,
+        std::tuple<State1, Evt1, fsm::NoGuard, State1>,
+        std::tuple<State1, Evt0, fsm::NoGuard, State0>,
+        std::tuple<State1, Evt2, fsm::NoGuard, State2>
     >;
 };
 
