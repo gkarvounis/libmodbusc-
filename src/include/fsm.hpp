@@ -6,8 +6,8 @@ namespace fsm {
 
 
 struct NoGuard {
-    template <typename FromStateType, typename EventType, typename TargetStateType>
-    bool operator()(FromStateType&, const EventType&, TargetStateType&) {
+    template <typename Fsm, typename FromStateType, typename EventType, typename TargetStateType>
+    bool operator()(Fsm&, FromStateType&, const EventType&, TargetStateType&) {
         return true;
     }
 };
@@ -69,7 +69,7 @@ template <typename Fsm, typename FromState, typename TransitionEvent, typename G
 struct GuardExecutor<Fsm, FromState, TransitionEvent, Guard, ToState, TransitionEvent> {
     static bool exec(Fsm& fsm, FromState& fromState, const TransitionEvent& evt, ToState& toState) {
         Guard g;
-        return g(/*fsm,*/ fromState, evt, toState);
+        return g(fsm, fromState, evt, toState);
     } 
 };
 
