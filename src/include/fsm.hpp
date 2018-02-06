@@ -34,15 +34,45 @@ struct TypeIndex<T, std::tuple<U, Types...>> {
 template <std::size_t N, typename Fsm>
 struct TryTransitionHelper {
     template <typename EventType>
-    static bool tryTransition(Fsm* fsm, const EventType& evt);
+    static bool tryTransition(Fsm* fsm, const EventType& evt) {
+        if (fsm->tryTransition<EventType, N>(evt))
+            return true;
+        else
+            return TryTransitionHelper<N-1, Fsm>::tryTransition(fsm, evt);
+    }
 };
 
 
 template <typename Fsm>
 struct TryTransitionHelper<0, Fsm> {
     template <typename EventType>
-    static bool tryTransition(Fsm* fsm, const EventType& evt);
+    static bool tryTransition(Fsm* fsm, const EventType& evt) {
+        if (fsm->tryTransition<EventType, 0>(evt))
+            return true;
+        else {
+            fsm->transitionNotFound(evt);
+            return false;
+        }
+    }
 };
+
+
+template <typename Fsm, typename FromState, typename TransitionEvent, typename Guard, typename ToState, typename Event>
+struct GuardExecutor {
+    static bool exec(Fsm&, FromState&, const Event&, ToState&) {
+        return false;
+    }
+};
+
+
+template <typename Fsm, typename FromState, typename TransitionEvent, typename Guard, typename ToState>
+struct GuardExecutor<Fsm, FromState, TransitionEvent, Guard, ToState, TransitionEvent> {
+    static bool exec(Fsm& fsm, FromState& fromState, const TransitionEvent& evt, ToState& toState) {
+        Guard g;
+        return g(/*fsm,*/ fromState, evt, toState);
+    } 
+};
+
 
 
 template <typename FsmDef, typename FsmData>
@@ -114,26 +144,22 @@ void Fsm<FsmDef, FsmData>::transitionNotFound(const EventType&) {
 template <typename FsmDef, typename FsmData>
 template <typename EventType, std::size_t N>
 bool Fsm<FsmDef, FsmData>::tryTransition(const EventType& evt) {
-    using TransitionType        = typename std::tuple_element<N, Transitions>::type;
-    using FromStateType         = typename std::tuple_element<0, TransitionType>::type;
-    using TransitionEventType   = typename std::tuple_element<1, TransitionType>::type;
-    using GuardType             = typename std::tuple_element<2, TransitionType>::type;
-    using ToStateType           = typename std::tuple_element<3, TransitionType>::type;
+    using TransitionType    = typename std::tuple_element<N, Transitions>::type;
+    using FromState         = typename std::tuple_element<0, TransitionType>::type;
+    using TransitionEvent   = typename std::tuple_element<1, TransitionType>::type;
+    using Guard             = typename std::tuple_element<2, TransitionType>::type;
+    using ToState           = typename std::tuple_element<3, TransitionType>::type;
 
-    constexpr std::size_t fromStateIndex        = TypeIndex<FromStateType, States>::value;
-    constexpr std::size_t toStateIndex          = TypeIndex<ToStateType, States>::value;
+    constexpr std::size_t fromStateIndex        = TypeIndex<FromState, States>::value;
+    constexpr std::size_t toStateIndex          = TypeIndex<ToState, States>::value;
 
-    if (!std::is_same<EventType, TransitionEventType>::value)
-        return false;
+    FromState  &fromState   = std::get<fromStateIndex>(m_states);
+    ToState    &toState     = std::get<toStateIndex>(m_states);
 
     if (fromStateIndex != m_current_state_id)
         return false;
 
-    FromStateType  &fromState = std::get<fromStateIndex>(m_states);
-    ToStateType    &toState   = std::get<toStateIndex>(m_states);
-    GuardType       guard;
-    
-    bool ok = guard(fromState, evt, toState);
+    bool ok = GuardExecutor<Fsm<FsmDef, FsmData>, FromState, TransitionEvent, Guard, ToState, EventType>::exec(*this, fromState, evt, toState);
 
     if (ok) {
         FsmDef::exitAction(*this, fromState);
@@ -151,28 +177,6 @@ FsmData& Fsm<FsmDef, FsmData>::userData() {
     return m_fsmData;
 }
 
-
-
-template <std::size_t N, typename Fsm>
-template <typename EventType>
-bool TryTransitionHelper<N, Fsm>::tryTransition(Fsm* fsm, const EventType& evt) {
-    if (fsm->tryTransition<EventType, N>(evt))
-        return true;
-    else
-        return TryTransitionHelper<N-1, Fsm>::tryTransition(fsm, evt);
-};
-
-
-template <typename Fsm>
-template <typename EventType>
-bool TryTransitionHelper<0, Fsm>::tryTransition(Fsm* fsm, const EventType& evt) {
-    if (fsm->tryTransition<EventType, 0>(evt))
-        return true;
-    else {
-        fsm->transitionNotFound(evt);
-        return false;
-    }
-}
 
 } // namespace fsm
 #endif
