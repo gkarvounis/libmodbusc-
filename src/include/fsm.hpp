@@ -13,6 +13,13 @@ struct NoGuard {
 };
 
 
+struct NoAction {
+    template <typename Fsm, typename FromStateType, typename EventType, typename TargetStateType>
+    void operator()(Fsm&, FromStateType&, EventType&, TargetStateType&) {
+    }
+};
+
+
 template <typename T, typename TupleType>
 struct TypeIndex {
     static_assert(std::tuple_size<TupleType>::value != 0, "type not found in tuple");
@@ -149,6 +156,7 @@ bool Fsm<FsmDef, FsmData>::tryTransition(const EventType& evt) {
     using TransitionEvent   = typename std::tuple_element<1, TransitionType>::type;
     using Guard             = typename std::tuple_element<2, TransitionType>::type;
     using ToState           = typename std::tuple_element<3, TransitionType>::type;
+    using TransitionAction  = typename std::tuple_element<4, TransitionType>::type;
 
     constexpr std::size_t fromStateIndex        = TypeIndex<FromState, States>::value;
     constexpr std::size_t toStateIndex          = TypeIndex<ToState, States>::value;
@@ -164,7 +172,7 @@ bool Fsm<FsmDef, FsmData>::tryTransition(const EventType& evt) {
     if (ok) {
         FsmDef::exitAction(*this, fromState);
         m_current_state_id = toStateIndex;
-        FsmDef::transitionAction(*this, fromState, evt, toState);
+        TransitionAction()(*this, fromState, evt, toState);
         FsmDef::entryAction(*this, toState);
         return true;
     } else

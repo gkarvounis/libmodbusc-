@@ -17,7 +17,12 @@ static std::string toString(const T& s);
 class FsmDef {
 public:
     struct Evt0 {};
-    struct Evt1 {};
+    struct Evt1 { 
+        Evt1(bool success):
+          success(success)
+        {}
+        bool success;
+    };
     struct Evt2 {};
 
 
@@ -32,23 +37,39 @@ public:
         State2
     >;
 
+    struct GuardEvt1Ok {
+        template <typename Fsm>
+        bool operator()(Fsm&, State0&, const Evt1& evt, State1&) {
+            return evt.success;
+        }
+    };
+
+    struct GuardEvt1Failed {
+        template <typename Fsm>
+        bool operator()(Fsm&, State0&, const Evt1& evt, State0&) {
+            return !evt.success;
+        }
+    };
+
 
     using InitialState = State0;
 
+    struct SimpleAction {
+        template <typename Fsm, typename FromStateType, typename EventType, typename TargetStateType>
+        void operator()(Fsm& fsm, FromStateType& fromState, const EventType& evt, TargetStateType& toState) {
+            fsm.userData().push_back(toString(fromState) + ":" + toString(evt) + "->" + toString(toState));
+        }
+    };
 
     using Transitions = std::tuple<
-        std::tuple<State0, Evt0, fsm::NoGuard, State0>,
-        std::tuple<State0, Evt1, fsm::NoGuard, State1>,
-        std::tuple<State1, Evt1, fsm::NoGuard, State1>,
-        std::tuple<State1, Evt0, fsm::NoGuard, State0>,
-        std::tuple<State1, Evt2, fsm::NoGuard, State2>
+        std::tuple<State0, Evt0,    fsm::NoGuard,      State0,     SimpleAction>,
+        std::tuple<State0, Evt1,    GuardEvt1Failed,   State0,     SimpleAction>,
+        std::tuple<State0, Evt1,    GuardEvt1Ok,       State1,     SimpleAction>,
+        std::tuple<State1, Evt1,    fsm::NoGuard,      State1,     SimpleAction>,
+        std::tuple<State1, Evt0,    fsm::NoGuard,      State0,     SimpleAction>,
+        std::tuple<State1, Evt2,    fsm::NoGuard,      State2,     SimpleAction>
     >;
 
-
-    template <typename Fsm, typename FromStateType, typename EventType, typename TargetStateType>
-    static void transitionAction(Fsm& fsm, FromStateType& fromState, const EventType& evt, TargetStateType& toState) {
-        fsm.userData().push_back(toString(fromState) + ":" + toString(evt) + "->" + toString(toState));
-    }
 
     template <typename Fsm, typename State>
     static void entryAction(Fsm& fsm, State& state) {
@@ -101,7 +122,8 @@ TEST_CASE("test basic fsm functionality", "[fsm]") {
     fsm.start();
     fsm.process_event(FsmDef::Evt0());
     fsm.process_event(FsmDef::Evt0());
-    fsm.process_event(FsmDef::Evt1());
+    fsm.process_event(FsmDef::Evt1(false));
+    fsm.process_event(FsmDef::Evt1(true));
     fsm.process_event(FsmDef::Evt2());
 
     REQUIRE(transitions == (std::vector<std::string>{
@@ -113,12 +135,14 @@ TEST_CASE("test basic fsm functionality", "[fsm]") {
         "State0:Evt0->State0",
         "entry:State0",
         "exit:State0",
+        "State0:Evt1->State0",
+        "entry:State0",
+        "exit:State0",
         "State0:Evt1->State1",
         "entry:State1",
         "exit:State1",
         "State1:Evt2->State2",
         "entry:State2"
-
     }));
 }
 
