@@ -38,9 +38,6 @@ struct TypeIndex<T, std::tuple<U, Types...>> {
 };
 
 
-template <typename FromState, typename Event, typename Guard, typename ToState, typename Action>
-using Transition = std::tuple<FromState, Event, Guard, ToState, Action>;
-
 template <typename Transition>
 using GetFromState = typename std::tuple_element<0, Transition>::type;
 
@@ -75,7 +72,7 @@ struct TransitionExecutor<Fsm, CurrentState, OccuredEvent, CurrentState, Occured
 
 template <typename Fsm, std::size_t N, typename CurrentState, typename OccuredEvent>
 struct TransitionTableIterator {
-    static bool process_event(Fsm& fsm, const OccuredEvent& evt) {
+    bool operator()(Fsm& fsm, const OccuredEvent& evt) {
         using Transition        = typename std::tuple_element<N, typename Fsm::Transitions>::type;
         using FromState         = GetFromState<Transition>;
         using Event             = GetEvent<Transition>;
@@ -83,14 +80,14 @@ struct TransitionTableIterator {
         if (TransitionExecutor<Fsm, CurrentState, OccuredEvent, FromState, Event, N>()(fsm, evt))
             return true;
         else
-            return TransitionTableIterator<Fsm, N-1, CurrentState, OccuredEvent>::process_event(fsm, evt);
+            return TransitionTableIterator<Fsm, N-1, CurrentState, OccuredEvent>()(fsm, evt);
     }
 };
 
 
 template <typename Fsm, typename CurrentState, typename OccuredEvent>
 struct TransitionTableIterator<Fsm, 0, CurrentState, OccuredEvent> {
-    static bool process_event(Fsm& fsm, const OccuredEvent& evt) {
+    bool operator()(Fsm& fsm, const OccuredEvent& evt) {
         using Transition        = typename std::tuple_element<0, typename Fsm::Transitions>::type;
         using FromState         = GetFromState<Transition>;
         using TransitionEvent   = GetEvent<Transition>;
@@ -114,7 +111,7 @@ struct StatesIterator {
 
     static bool process_event(Fsm& fsm, const OccuredEvent& evt) {
         if (fsm.m_current_state_id == StateIndex) {
-            return TransitionTableIterator<Fsm, NumTransitions-1, FromState, OccuredEvent>::process_event(fsm, evt);
+            return TransitionTableIterator<Fsm, NumTransitions-1, FromState, OccuredEvent>()(fsm, evt);
         }
         else
             return StatesIterator<Fsm, OccuredEvent, StateIndex-1>::process_event(fsm, evt);
@@ -132,7 +129,7 @@ struct StatesIterator<Fsm, OccuredEvent, 0> {
         if (fsm.m_current_state_id != 0)
             return false;
 
-        return TransitionTableIterator<Fsm, NumTransitions-1, FromState, OccuredEvent>::process_event(fsm, evt);
+        return TransitionTableIterator<Fsm, NumTransitions-1, FromState, OccuredEvent>()(fsm, evt);
     }
 };
 
