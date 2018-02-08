@@ -38,6 +38,9 @@ struct TypeIndex<T, std::tuple<U, Types...>> {
 };
 
 
+template <typename FromState, typename Event, typename Guard, typename ToState, typename Action>
+using Transition = std::tuple<FromState, Event, Guard, ToState, Action>;
+
 template <typename Transition>
 using GetFromState = typename std::tuple_element<0, Transition>::type;
 
@@ -54,70 +57,45 @@ template <typename Transition>
 using GetAction = typename std::tuple_element<4, Transition>::type;
 
 
-template <typename Fsm, typename FromState, typename TransitionEvent, typename Guard, typename ToState, typename Action, typename CurrentState, typename OccuredEvent>
+template <typename Fsm, typename CurrentState, typename OccuredEvent, typename FromState, typename Event, std::size_t N>
 struct TransitionExecutor {
-    static bool process_event(Fsm&, CurrentState&, const OccuredEvent&, ToState&) {
+    bool operator()(Fsm&, const OccuredEvent&) {
         return false;
     }
 };
 
 
-template <typename Fsm, typename CurrentState, typename OccuredEvent, typename Guard, typename ToState, typename Action>
-struct TransitionExecutor<Fsm, CurrentState, OccuredEvent, Guard, ToState, Action, CurrentState, OccuredEvent> {
-    static bool process_event(Fsm& fsm, CurrentState& fromState, const OccuredEvent& evt, ToState& toState) {
-        if (Guard()(fsm, fromState, evt, toState)) {
-            fsm.exitAction(fromState);
-            Action()(fsm, fromState, evt, toState);
-            fsm.entryAction(toState);
-            return true;
-        } else {
-            return false;
-        }
+template <typename Fsm, typename CurrentState, typename OccuredEvent, std::size_t N>
+struct TransitionExecutor<Fsm, CurrentState, OccuredEvent, CurrentState, OccuredEvent, N> {
+    bool operator()(Fsm& fsm, const OccuredEvent& evt) {
+        return fsm.template performTransition<N, OccuredEvent>(evt);
     }
 };
 
 
 template <typename Fsm, std::size_t N, typename CurrentState, typename OccuredEvent>
 struct TransitionTableIterator {
-    using Transition = typename std::tuple_element<N, typename Fsm::Transitions>::type;
+    static bool process_event(Fsm& fsm, const OccuredEvent& evt) {
+        using Transition        = typename std::tuple_element<N, typename Fsm::Transitions>::type;
+        using FromState         = GetFromState<Transition>;
+        using Event             = GetEvent<Transition>;
 
-    using FromState = GetFromState<Transition>;
-    using TransitionEvent = GetEvent<Transition>;
-    using Guard = GetGuard<Transition>;
-    using ToState = GetToState<Transition>;
-    using Action = GetAction<Transition>;
-
-
-    static bool process_event(Fsm& fsm, CurrentState& fromState, const OccuredEvent& evt) {
-        static constexpr std::size_t ToStateIndex = TypeIndex<ToState, typename Fsm::States>::value;
-
-        ToState& toState = std::get<ToStateIndex>(fsm.m_states);
-
-        if (TransitionExecutor<Fsm, FromState, TransitionEvent, Guard, ToState, Action, CurrentState, OccuredEvent>::process_event(fsm, fromState, evt, toState))
+        if (TransitionExecutor<Fsm, CurrentState, OccuredEvent, FromState, Event, N>()(fsm, evt))
             return true;
         else
-            return TransitionTableIterator<Fsm, N-1, CurrentState, OccuredEvent>::process_event(fsm, fromState, evt);
+            return TransitionTableIterator<Fsm, N-1, CurrentState, OccuredEvent>::process_event(fsm, evt);
     }
 };
 
 
 template <typename Fsm, typename CurrentState, typename OccuredEvent>
 struct TransitionTableIterator<Fsm, 0, CurrentState, OccuredEvent> {
-    using Transition = typename std::tuple_element<0, typename Fsm::Transitions>::type;
+    static bool process_event(Fsm& fsm, const OccuredEvent& evt) {
+        using Transition        = typename std::tuple_element<0, typename Fsm::Transitions>::type;
+        using FromState         = GetFromState<Transition>;
+        using TransitionEvent   = GetEvent<Transition>;
 
-    using FromState = GetFromState<Transition>;
-    using TransitionEvent = GetEvent<Transition>;
-    using Guard = GetGuard<Transition>;
-    using ToState = GetToState<Transition>;
-    using Action = GetAction<Transition>;
-
-
-    static bool process_event(Fsm& fsm, CurrentState& fromState, const OccuredEvent& evt) {
-        static constexpr std::size_t ToStateIndex = TypeIndex<ToState, typename Fsm::States>::value;
-
-        ToState& toState = std::get<ToStateIndex>(fsm.m_states);
-
-        if (TransitionExecutor<Fsm, FromState, TransitionEvent, Guard, ToState, Action, CurrentState, OccuredEvent>::process_event(fsm, fromState, evt, toState))
+        if (TransitionExecutor<Fsm, CurrentState, OccuredEvent, FromState, TransitionEvent, 0>()(fsm, evt))
             return true;
         else {
             fsm.transitionNotFound(evt);
@@ -131,13 +109,12 @@ template <typename Fsm, typename OccuredEvent, std::size_t StateIndex>
 struct StatesIterator {
     using States = typename Fsm::States;
     using FromState = typename std::tuple_element<StateIndex, States>::type;
+
     static constexpr std::size_t NumTransitions = std::tuple_size<typename Fsm::Transitions>::value;
 
     static bool process_event(Fsm& fsm, const OccuredEvent& evt) {
         if (fsm.m_current_state_id == StateIndex) {
-            FromState& fromState = std::get<StateIndex>(fsm.m_states);
-
-            return TransitionTableIterator<Fsm, NumTransitions-1, FromState, OccuredEvent>::process_event(fsm, fromState, evt);
+            return TransitionTableIterator<Fsm, NumTransitions-1, FromState, OccuredEvent>::process_event(fsm, evt);
         }
         else
             return StatesIterator<Fsm, OccuredEvent, StateIndex-1>::process_event(fsm, evt);
@@ -155,9 +132,7 @@ struct StatesIterator<Fsm, OccuredEvent, 0> {
         if (fsm.m_current_state_id != 0)
             return false;
 
-        FromState& fromState = std::get<0>(fsm.m_states);
-
-        return TransitionTableIterator<Fsm, NumTransitions-1, FromState, OccuredEvent>::process_event(fsm, fromState, evt);
+        return TransitionTableIterator<Fsm, NumTransitions-1, FromState, OccuredEvent>::process_event(fsm, evt);
     }
 };
 
@@ -187,7 +162,7 @@ private:
     template <typename Fsm, std::size_t N, typename CurrentState, typename OccuredEvent>
     friend struct TransitionTableIterator;
 
-    template <typename Fsm, typename FromState, typename TransitionEvent, typename Guard, typename ToState, typename Action, typename CurrentState, typename OccuredEvent>
+    template <typename Fsm, typename CurrentState, typename OccuredEvent, typename FromState, typename Event, std::size_t N>
     friend struct TransitionExecutor;
 
     std::size_t     m_current_state_id;
@@ -199,22 +174,8 @@ private:
     template <typename EventType>
     void transitionNotFound(const EventType&);
 
-
-    template <typename ToState>
-    void setCurrentState(ToState& toState);
-
-
-    template <typename State>
-    void exitAction(State& state) {
-        FsmDef::exitAction(*this, state);
-    }
-
-
-    template <typename State>
-    void entryAction(State& state) {
-        m_current_state_id = TypeIndex<State, States>::value;
-        FsmDef::entryAction(*this, state);
-    }
+    template <std::size_t N, typename EventType>
+    bool performTransition(const EventType& evt);
 };
 
 
@@ -259,10 +220,29 @@ FsmData& Fsm<FsmDef, FsmData>::userData() {
 
 
 template <typename FsmDef, typename FsmData>
-template <typename ToState>
-void Fsm<FsmDef, FsmData>::setCurrentState(ToState& toState) {
-    constexpr std::size_t toStateIndex = TypeIndex<ToState, States>::value;
-    m_current_state_id = toStateIndex;
+template <std::size_t N, typename EventType>
+bool Fsm<FsmDef, FsmData>::performTransition(const EventType& evt) {
+    using Transition            = typename std::tuple_element<N, Transitions>::type;
+    using Guard                 = GetGuard<Transition>;
+    using FromState             = GetFromState<Transition>;
+    using ToState               = GetToState<Transition>;
+    using Action                = GetAction<Transition>;
+
+    constexpr std::size_t FromStateIndex = TypeIndex<FromState, States>::value;
+    constexpr std::size_t ToStateIndex   = TypeIndex<ToState, States>::value;
+
+    FromState& fromState        = std::get<FromStateIndex>(m_states);
+    ToState& toState            = std::get<ToStateIndex>(m_states);
+
+    if (Guard()(*this, fromState, evt, toState)) {
+        FsmDef::exitAction(*this, fromState);
+        Action()(*this, fromState, evt, toState);
+        m_current_state_id = ToStateIndex;
+        FsmDef::entryAction(*this, toState);
+        return true;
+    } else {
+        return false;
+    }
 }
 
 } // namespace fsm
