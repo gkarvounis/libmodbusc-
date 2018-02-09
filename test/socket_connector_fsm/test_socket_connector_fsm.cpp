@@ -2,11 +2,7 @@
 
 #include "Catch.hpp"
 #include <boost/asio.hpp>
-#include <boost/msm/back/state_machine.hpp>
-#include <boost/msm/front/state_machine_def.hpp>
-#include <boost/msm/front/functor_row.hpp>
 
-#include "msm_utils/guards/NoGuard.hpp"
 #include "msm_utils/guards/AsioOperationSuccesfull.hpp"
 #include "msm_utils/guards/AsioOperationFailed.hpp"
 #include "msm_utils/guards/AsioOperationAborted.hpp"
@@ -23,89 +19,79 @@ boost::asio::ip::tcp::endpoint make_endpoint(const std::string& addr, uint16_t p
     return boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(addr), port);
 }
 
-//#include "SocketConnectorFsmActions.hpp"
+
 namespace socket_connector_detail {
 
 struct ActInitConnection {
-    template <typename Event, typename FSM, typename SourceState, typename TargetState>
-    void operator()(const Event& /*evt*/, FSM& fsm, SourceState& /*source*/, TargetState& /*target*/) {
-        fsm.push_executed_action("ActInitConnection");
+    template <typename Fsm, typename SourceState, typename Event, typename TargetState>
+    void operator()(Fsm& fsm, SourceState& /*source*/, const Event& /*evt*/, TargetState& /*target*/) {
+        fsm.userData().push_back("ActInitConnection");
     }
 };
 
 
 struct ActInitRetryTimer {
-    template <typename Event, typename FSM, typename SourceState, typename TargetState>
-    void operator()(const Event& /*evt*/, FSM& fsm, SourceState& /*source*/, TargetState& /*target*/) {
-        fsm.push_executed_action("ActInitRetryTimer");
+    template <typename Fsm, typename SourceState, typename Event, typename TargetState>
+    void operator()(Fsm& fsm, SourceState& /*source*/, const Event& /*evt*/, TargetState& /*target*/) {
+        fsm.userData().push_back("ActInitRetryTimer");
     }
 };
 
 struct ActPostCallback {
 public:
-    template <typename FSM>
-    void operator()(const EvtConnected& /*evt*/, FSM& fsm, StConnecting& /*source*/, StIdle& /*target*/) {
-        fsm.push_executed_action("ActPostCallback - StConnecting->StIdle");
+    template <typename Fsm>
+    void operator()(Fsm& fsm, StConnecting& /*fromState*/, const EvtConnected&, StIdle& /*toState*/) {
+        fsm.userData().push_back("ActPostCallback - StConnecting->StIdle");
     }
 
-    template <typename FSM>
-    void operator()(const EvtTimerExpired& /*evt*/, FSM& fsm, StWaitingTimerAfterCancel& /*source*/, StIdle& /*target*/) {
-        fsm.push_executed_action("ActPostCallback - StWaitingTimerAfterCancel->StIdle");
+    template <typename Fsm>
+    void operator()(Fsm& fsm, StWaitingTimerAfterCancel& /*fromState*/, const EvtTimerExpired&, StIdle& /*toState*/) {
+        fsm.userData().push_back("ActPostCallback - StWaitingTimerAfterCancel->StIdle");
     }
 
-    template <typename FSM>
-    void operator()(const EvtConnected& /*evt*/, FSM& fsm, StWaitingSocketAfterCancel& /*source*/, StIdle& /*target*/) {
-        fsm.push_executed_action("ActPostCallback - StWaitingSocketAfterCancel->StIdle");
+    template <typename Fsm>
+    void operator()(Fsm& fsm, StWaitingSocketAfterCancel& /*fromState*/, const EvtConnected&, StIdle& /*toState*/) {
+        fsm.userData().push_back("ActPostCallback - StWaitingSocketAfterCancel->StIdle");
     }
 };
 
 
 struct ActCancelSocket {
-    template <typename Event, typename FSM, typename SourceState, typename TargetState>
-    void operator()(const Event& /*evt*/, FSM& fsm, SourceState& /*source*/, TargetState& /*target*/) {
-        fsm.push_executed_action("ActCancelSocket");
+    template <typename Fsm, typename SourceState, typename Event, typename TargetState>
+    void operator()(Fsm& fsm, SourceState& /*source*/, const Event& /*evt*/, TargetState& /*target*/) {
+        fsm.userData().push_back("ActCancelSocket");
     }
 };
 
 
 struct ActCancelTimer {
-    template <typename Event, typename FSM, typename SourceState, typename TargetState>
-    void operator()(const Event& /*evt*/, FSM& fsm, SourceState& /*source*/, TargetState& /*target*/) {
-        fsm.push_executed_action("ActCancelTimer");
+    template <typename Fsm, typename SourceState, typename Event, typename TargetState>
+    void operator()(Fsm& fsm, SourceState& /*source*/, const Event& /*evt*/, TargetState& /*target*/) {
+        fsm.userData().push_back("ActCancelTimer");
     }
 };
 
+
 struct NoAction {
-    template <typename Event, typename FSM, typename SourceState, typename TargetState>
-    void operator()(const Event& /*evt*/, FSM& fsm, SourceState& /*source*/, TargetState& /*target*/) {
-        fsm.push_executed_action("NoAction");
+    template <typename Fsm, typename SourceState, typename Event, typename TargetState>
+    void operator()(Fsm& fsm, SourceState& /*source*/, const Event& /*evt*/, TargetState& /*target*/) {
+        fsm.userData.push_back("NoAction");
     }
 };
 
 } // namespace socket_connector_detail
 
 
+#include "fsm.hpp"
 #include "SocketConnectorFsm.hpp"
 
-class FsmDefEx : public socket_connector_detail::FsmDef {
-public:
-    FsmDefEx(boost::asio::io_service* io) : socket_connector_detail::FsmDef(io) {}
 
-    void push_executed_action(const std::string& action) {
-        executed_actions.push_back(action);
-    }
-
-    std::vector<std::string> executed_actions;
-};
-
-using SocketConnectorFsm = boost::msm::back::state_machine<FsmDefEx>;
+using SocketConnectorFsm = fsm::Fsm<socket_connector_detail::FsmDef, std::vector<std::string>>;
 
 
 TEST_CASE("Two consecutive connection requests that complete succesfully", "SocketConnectorFsmDef") {
-    boost::asio::io_service io;
-    boost::asio::ip::tcp::socket sock(io);
-
-    SocketConnectorFsm fsm(&io);
+    std::vector<std::string> userData;
+    SocketConnectorFsm fsm(userData);
     fsm.start();
 
     fsm.process_event(EvtInitConnection());
@@ -113,7 +99,7 @@ TEST_CASE("Two consecutive connection requests that complete succesfully", "Sock
     fsm.process_event(EvtInitConnection());
     fsm.process_event(EvtConnected(boost::system::error_code()));
 
-    REQUIRE(fsm.executed_actions == (std::vector<std::string>{
+    REQUIRE(userData == (std::vector<std::string>{
         "ActInitConnection", 
         "ActPostCallback - StConnecting->StIdle",
         "ActInitConnection", 
@@ -121,7 +107,7 @@ TEST_CASE("Two consecutive connection requests that complete succesfully", "Sock
     }));
 }
 
-
+#if 0
 TEST_CASE("One connection request that is canceled by user before completing", "SocketConnectorFsmDef") {
     boost::asio::io_service io;
     boost::asio::ip::tcp::socket sock(io);
@@ -178,3 +164,5 @@ TEST_CASE("One connection request that fails and user cancels before timer expir
         "ActPostCallback - StWaitingTimerAfterCancel->StIdle"
     }));
 }
+#endif
+
