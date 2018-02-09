@@ -3,11 +3,11 @@
 
 namespace socket_connector_detail {
 
-struct StIdle :                             public boost::msm::front::state<> {};
-struct StConnecting:                        public boost::msm::front::state<> {};
-struct StWaitingRetryTimer:                 public boost::msm::front::state<> {};
-struct StWaitingSocketAfterCancel:          public boost::msm::front::state<> {};
-struct StWaitingTimerAfterCancel:           public boost::msm::front::state<> {};
+struct StIdle {};
+struct StConnecting {};
+struct StWaitingRetryTimer {};
+struct StWaitingSocketAfterCancel {};
+struct StWaitingTimerAfterCancel {};
 
 
 } // namespace socket_connector_detail

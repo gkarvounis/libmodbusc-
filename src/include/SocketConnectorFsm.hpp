@@ -3,38 +3,17 @@
 
 namespace socket_connector_detail {
 
-struct FsmDef : public boost::msm::front::state_machine_def<FsmDef> {
+struct UserData {
     using Socket                                = boost::asio::ip::tcp::socket;
     using Endpoint                              = boost::asio::ip::tcp::endpoint;
     using Interval                              = boost::posix_time::milliseconds;
     using SocketConnectedCb                     = std::function<void(const boost::system::error_code& ec)>;
 
-                                                FsmDef(boost::asio::io_service* io);
-                                                FsmDef(boost::asio::io_service* io, const Endpoint& ep, const Interval& interval);
-    boost::asio::io_service&                    get_io_service();
+    inline                                      UserData(boost::asio::io_service& io);
+    inline                                      UserData(boost::asio::io_service& io, const Endpoint& ep, const Interval& interval);
+
     void                                        set_connect_params(Socket& sock, const Endpoint& ep, const Interval& interval, SocketConnectedCb cb);
     void                                        set_connect_params(Socket& sock, SocketConnectedCb cb);
-
-
-    typedef StIdle initial_state;
-
-    struct transition_table : public boost::mpl::vector<
-        boost::msm::front::Row< StIdle,                     EvtCancel,              StIdle,                         NoAction,               NoGuard>,
-        boost::msm::front::Row< StIdle,                     EvtInitConnection,      StConnecting,                   ActInitConnection,      NoGuard>,
-        boost::msm::front::Row< StConnecting,               EvtConnected,           StIdle,                         ActPostCallback,        AsioOperationSuccesfull>,
-        boost::msm::front::Row< StConnecting,               EvtConnected,           StWaitingRetryTimer,            ActInitRetryTimer,      AsioOperationFailed>,
-        boost::msm::front::Row< StConnecting,               EvtCancel,              StWaitingSocketAfterCancel,     ActCancelSocket,        NoGuard>,
-        boost::msm::front::Row< StWaitingSocketAfterCancel, EvtConnected,           StIdle,                         ActPostCallback,        NoGuard>,
-        boost::msm::front::Row< StWaitingRetryTimer,        EvtTimerExpired,        StConnecting,                   ActInitConnection,      AsioOperationSuccesfull>,
-        boost::msm::front::Row< StWaitingRetryTimer,        EvtCancel,              StWaitingTimerAfterCancel,      ActCancelTimer,         NoGuard>,
-        boost::msm::front::Row< StWaitingTimerAfterCancel,  EvtTimerExpired,        StIdle,                         ActPostCallback,        NoGuard>
-    > {};
-
-
-    // Replaces the default no-transition response.
-    template <typename FSM, typename Event>
-    void no_transition(Event const& e, FSM&,int state);
-
 
     boost::asio::deadline_timer                 m_timer;
     Interval                                    m_interval;
@@ -44,9 +23,42 @@ struct FsmDef : public boost::msm::front::state_machine_def<FsmDef> {
 };
 
 
-FsmDef::FsmDef(boost::asio::io_service* io) :
-    boost::msm::front::state_machine_def<FsmDef>(),
-    m_timer(*io),
+struct FsmDef {
+    using States = std::tuple<
+        StIdle,
+        StConnecting,
+        StWaitingRetryTimer,
+        StWaitingSocketAfterCancel,
+        StWaitingTimerAfterCancel
+    >;
+
+    using InitialState = StIdle;
+
+    using Transitions = std::tuple<
+        std::tuple< StIdle,                     EvtCancel,           fsm::NoGuard,               StIdle,                         fsm::NoAction      >,
+        std::tuple< StIdle,                     EvtInitConnection,   fsm::NoGuard,               StConnecting,                   ActInitConnection  >,
+        std::tuple< StConnecting,               EvtConnected,        AsioOperationSuccesfull,    StIdle,                         ActPostCallback    >,
+        std::tuple< StConnecting,               EvtConnected,        AsioOperationFailed,        StWaitingRetryTimer,            ActInitRetryTimer  >,
+        std::tuple< StConnecting,               EvtCancel,           fsm::NoGuard,               StWaitingSocketAfterCancel,     ActCancelSocket    >,
+        std::tuple< StWaitingSocketAfterCancel, EvtConnected,        fsm::NoGuard,               StIdle,                         ActPostCallback    >,
+        std::tuple< StWaitingRetryTimer,        EvtTimerExpired,     AsioOperationSuccesfull,    StConnecting,                   ActInitConnection  >,
+        std::tuple< StWaitingRetryTimer,        EvtCancel,           fsm::NoGuard,               StWaitingTimerAfterCancel,      ActCancelTimer     >,
+        std::tuple< StWaitingTimerAfterCancel,  EvtTimerExpired,     fsm::NoGuard,               StIdle,                         ActPostCallback    >
+    >;
+
+    template <typename Fsm, typename State>
+    static void entryAction(Fsm&, State&) {
+    }
+
+
+    template <typename Fsm, typename State>
+    static void exitAction(Fsm&, State&) {
+    }
+};
+
+
+UserData::UserData(boost::asio::io_service& io) :
+    m_timer(io),
     m_interval(0),
     m_connectedCb(),
     m_endpoint(),
@@ -54,9 +66,8 @@ FsmDef::FsmDef(boost::asio::io_service* io) :
 {}
 
 
-FsmDef::FsmDef(boost::asio::io_service* io, const Endpoint& ep, const Interval& interval) :
-    boost::msm::front::state_machine_def<FsmDef>(),
-    m_timer(*io),
+UserData::UserData(boost::asio::io_service& io, const Endpoint& ep, const Interval& interval) :
+    m_timer(io),
     m_interval(interval),
     m_connectedCb(),
     m_endpoint(ep),
@@ -64,12 +75,7 @@ FsmDef::FsmDef(boost::asio::io_service* io, const Endpoint& ep, const Interval& 
 {}
 
 
-boost::asio::io_service& FsmDef::get_io_service() {
-    return m_timer.get_io_service();
-}
-
-
-void FsmDef::set_connect_params(Socket& sock, const Endpoint& ep, const Interval& interval, SocketConnectedCb cb) {
+void UserData::set_connect_params(Socket& sock, const Endpoint& ep, const Interval& interval, SocketConnectedCb cb) {
     m_socket = &sock;
     m_endpoint = ep;
     m_interval = interval;
@@ -77,23 +83,11 @@ void FsmDef::set_connect_params(Socket& sock, const Endpoint& ep, const Interval
 }
 
 
-void FsmDef::set_connect_params(Socket& sock, SocketConnectedCb cb) {
+void UserData::set_connect_params(Socket& sock, SocketConnectedCb cb) {
     m_socket = &sock;
     m_connectedCb = cb;
 }
 
-
-template <typename FSM, typename Event>
-void FsmDef::no_transition(Event const& e, FSM& fsm, int state) {
-    static char const* const state_names[] = { "StIdle", "StConnecting", "StWaitingSocketAterCancel", "StWaitingRetryTimer", "StWaitingTimerAfterCancel" };
-
-    std::cout << "no transition from state " << state << "(" << state_names[fsm.current_state()[0]] << ")"
-        << " on event " << typeid(e).name() << std::endl;
-
-    exit(1);
-}
-
 } // namespace socket_connector_detail
-
 #endif
 
